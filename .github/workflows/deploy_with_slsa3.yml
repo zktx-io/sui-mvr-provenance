@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.18
+      - uses: zktx-io/sui-mvr-provenance@v0.0.19
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -32,6 +32,7 @@ jobs:
     needs: build
     outputs:
       base64_provenance: ${{ steps.encode.outputs.base64_file }}
+      base64_hashes: ${{ steps.encode.outputs.base64_hashes }}
     steps:
       - name: Download Bytecode Dump
         uses: actions/download-artifact@v4
@@ -54,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.18
+          ref: v0.0.19
           path: mvr
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
@@ -68,21 +69,22 @@ jobs:
 
       - id: encode
         run: |
-          if [ ! -f mvr/provenance.json ]; then
+          if [ ! -f provenance.json ]; then
             echo "::error file=provenance.json::❌ provenance.json not found"
             exit 1
           fi
-          base64_file=$(base64 -w0 mvr/provenance.json)
-          echo "base64_file=$base64_file" >> "$GITHUB_OUTPUT"
+
+          HASH=$(sha256sum provenance.json | awk '{print $1}')
+          SUBJECT_LINE="$HASH provenance.json"
+          BASE64_SUBJECT=$(echo -n "$SUBJECT_LINE" | base64 -w0)
+
+          echo "base64_file=$(base64 -w0 provenance.json)" >> "$GITHUB_OUTPUT"
+          echo "base64_hashes=$BASE64_SUBJECT" >> "$GITHUB_OUTPUT"
 
   provenance:
     needs: deploy
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
-      base64-subjects: ${{ needs.deploy.outputs.base64_provenance }}
+      base64-subjects: ${{ needs.deploy.outputs.base64_hashes }}
       upload-assets: false
       provenance-name: 'mvr.intoto.jsonl'
-    permissions:
-      id-token: write
-      contents: write
-      actions: read
