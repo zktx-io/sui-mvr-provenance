@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+
 import { BytecodeDump, MvrConfig } from './type';
 
 export const loadMvrConfig = async (baseDir: string = '..'): Promise<MvrConfig> => {

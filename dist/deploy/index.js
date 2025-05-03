@@ -57323,16 +57323,21 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const promises_1 = __importDefault(__nccwpck_require__(1943));
+const path_1 = __importDefault(__nccwpck_require__(6928));
 const core = __importStar(__nccwpck_require__(7484));
 const client_1 = __nccwpck_require__(827);
-const load_1 = __nccwpck_require__(3469);
 const transactions_1 = __nccwpck_require__(9417);
 const getSigner_1 = __nccwpck_require__(3207);
+const load_1 = __nccwpck_require__(3469);
 const main = async () => {
     const config = await (0, load_1.loadMvrConfig)();
     const dump = await (0, load_1.loadBytecodeDump)();
-    const { signer, isGitSigner } = await (0, getSigner_1.getSigner)(config);
+    const { signer } = await (0, getSigner_1.getSigner)(config);
     core.info('📦 MVR Config:');
     core.info(JSON.stringify(config, null, 2));
     core.info('📄 Bytecode Dump:');
@@ -57365,12 +57370,11 @@ const main = async () => {
         });
     }
     else {
-        transaction.transferObjects([
-            transaction.publish({
-                modules,
-                dependencies,
-            }),
-        ], config.owner);
+        const publish = transaction.publish({
+            modules,
+            dependencies,
+        });
+        transaction.transferObjects([publish], config.owner);
     }
     const { input } = await client.dryRunTransactionBlock({
         transactionBlock: await transaction.build({ client }),
@@ -57384,7 +57388,11 @@ const main = async () => {
         digest: txDigest,
         options: { showEffects: true },
     });
-    if (!txEffect || txEffect.status.status !== 'success' || txEffect.created.length < 2) {
+    if (!txEffect ||
+        txEffect.status.status !== 'success' ||
+        (config.upgrade_id && config.package_id
+            ? txEffect.created.length !== 1
+            : txEffect.created.length < 2)) {
         core.setFailed(`❌ Transaction failed: ${txDigest}`);
         core.setFailed(`❌ ${txEffect ? txEffect.status.error : 'Unknown error'}`);
         process.exit(1);
@@ -57399,6 +57407,21 @@ const main = async () => {
                 core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
             }
         });
+        if (txEffect.created.length === 1) {
+            await promises_1.default.writeFile(path_1.default.join(process.cwd(), 'provenance.json'), JSON.stringify({
+                digest: txDigest,
+                modules,
+                dependencies,
+                package: config.package_id,
+            }));
+        }
+        else {
+            await promises_1.default.writeFile(path_1.default.join(process.cwd(), 'provenance.json'), JSON.stringify({
+                digest: txDigest,
+                modules,
+                dependencies,
+            }));
+        }
     }
 };
 main().catch(err => {

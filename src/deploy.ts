@@ -1,13 +1,17 @@
+import fs from 'fs/promises';
+import path from 'path';
+
 import * as core from '@actions/core';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
-import { loadBytecodeDump, loadMvrConfig } from './utils/load';
 import { Transaction, UpgradePolicy } from '@mysten/sui/transactions';
+
 import { getSigner } from './utils/getSigner';
+import { loadBytecodeDump, loadMvrConfig } from './utils/load';
 
 const main = async () => {
   const config = await loadMvrConfig();
   const dump = await loadBytecodeDump();
-  const { signer, isGitSigner } = await getSigner(config);
+  const { signer } = await getSigner(config);
 
   core.info('📦 MVR Config:');
   core.info(JSON.stringify(config, null, 2));
@@ -45,15 +49,11 @@ const main = async () => {
       arguments: [cap, upgrade],
     });
   } else {
-    transaction.transferObjects(
-      [
-        transaction.publish({
-          modules,
-          dependencies,
-        }),
-      ],
-      config.owner,
-    );
+    const publish = transaction.publish({
+      modules,
+      dependencies,
+    });
+    transaction.transferObjects([publish], config.owner);
   }
 
   const { input } = await client.dryRunTransactionBlock({
@@ -71,7 +71,13 @@ const main = async () => {
     options: { showEffects: true },
   });
 
-  if (!txEffect || txEffect.status.status !== 'success' || txEffect.created!.length < 2) {
+  if (
+    !txEffect ||
+    txEffect.status.status !== 'success' ||
+    (config.upgrade_id && config.package_id
+      ? txEffect.created!.length !== 1
+      : txEffect.created!.length < 2)
+  ) {
     core.setFailed(`❌ Transaction failed: ${txDigest}`);
     core.setFailed(`❌ ${txEffect ? txEffect.status.error : 'Unknown error'}`);
     process.exit(1);
@@ -84,6 +90,27 @@ const main = async () => {
         core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
       }
     });
+
+    if (txEffect.created!.length === 1) {
+      await fs.writeFile(
+        path.join(process.cwd(), 'provenance.json'),
+        JSON.stringify({
+          digest: txDigest,
+          modules,
+          dependencies,
+          package: config.package_id,
+        }),
+      );
+    } else {
+      await fs.writeFile(
+        path.join(process.cwd(), 'provenance.json'),
+        JSON.stringify({
+          digest: txDigest,
+          modules,
+          dependencies,
+        }),
+      );
+    }
   }
 };
 
