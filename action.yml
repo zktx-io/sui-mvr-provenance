@@ -29,7 +29,7 @@ runs:
         set -euo pipefail
         cd "${{ inputs.move-directory }}"
         echo "Running sui move build..."
-        sui move build --dump-bytecode-as-base64 --ignore-legacy-address-checks --ignore-chain
+        sui move build --dump-bytecode-as-base64 --ignore-chain >> bytecode.dump.json
 
     - name: Upload Bytecode Dump
       uses: actions/upload-artifact@v4
