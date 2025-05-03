@@ -1,4 +1,4 @@
-# 🚀 Sui MVR Provenanceㅁ
+# 🚀 Sui MVR Provenance
 
 # Build and Upload Move Bytecode
 
