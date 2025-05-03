@@ -69,12 +69,12 @@ jobs:
           echo "::group::📄 provenance.json (raw)"
           cat provenance.json
           echo "::endgroup::"
-      
+
           echo "::group::🔐 provenance.json (base64)"
           base64_encoded=$(base64 -w0 provenance.json)
           echo "$base64_encoded"
           echo "::endgroup::"
-      
+
           echo "base64_file=$base64_encoded" >> $GITHUB_OUTPUT
 
   provenance:
