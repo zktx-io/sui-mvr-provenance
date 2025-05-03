@@ -1,6 +1,6 @@
-name: 'Build and Upload Move Bytecode'
-description: 'Builds a Move package using the Sui CLI and uploads the bytecode dump for use in later CI/CD steps.'
-author: 'your-org-or-name'
+name: 'Sui MVR Provenance'
+description: 'Builds a Move package using the Sui CLI and uploads the bytecode dump to prepare for provenance and MVR registration.'
+author: 'zktx.io'
 branding:
   icon: 'package'
   color: 'blue'
