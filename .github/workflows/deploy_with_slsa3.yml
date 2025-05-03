@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.3
+      - uses: zktx-io/sui-mvr-provenance@v0.0.4
         with:
           working-directory: ${{ inputs.working-directory }}
 
