@@ -7,9 +7,9 @@ Useful for generating provenance data or integrating with MVR and downstream dep
 
 ## 📥 Inputs
 
-| Name            | Description                                                                  | Required | Default |
-|-----------------|------------------------------------------------------------------------------|----------|---------|
-| `move-directory`| Path to the Move project directory (must contain `Move.toml`)                | ✅ Yes   | `.`     |
+| Name                | Description                                                   | Required | Default |
+| ------------------- | ------------------------------------------------------------- | -------- | ------- |
+| `working-directory` | Path to the Move project directory (must contain `Move.toml`) | ✅ Yes   | `.`     |
 
 ## 📤 Output
 
@@ -21,5 +21,5 @@ Uploads a single artifact named `bytecode.dump.json`, containing base64-encoded 
 - name: Build and Upload Move Bytecode
   uses: zktx-io/sui-mvr-provenance@v0.0.0
   with:
-    move-directory: ./my-move-package
+    working-directory: ./my-move-package
 ```

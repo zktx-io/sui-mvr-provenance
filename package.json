@@ -1,0 +1,68 @@
+{
+  "name": "sui-mvr-provenance",
+  "version": "0.0.1",
+  "description": "Deploy Sui Packages with cryptographic provenance using SLSA + Sigstore.",
+  "keywords": [
+    "sui",
+    "mvr",
+    "slsa",
+    "github",
+    "action",
+    "deployment",
+    "provenance"
+  ],
+  "homepage": "https://github.com/zktx-io/sui-mvr-provenance",
+  "bugs": {
+    "url": "https://github.com/zktx-io/sui-mvr-provenance/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zktx-io/sui-mvr-provenance.git"
+  },
+  "license": "ISC",
+  "author": "daoauth",
+  "type": "commonjs",
+  "main": "dist/deploy.js",
+  "exports": {
+    "./deploy": "./dist/deploy.js",
+    "./register": "./dist/register.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "format": "npx prettier --check .",
+    "format:write": "npx prettier --write . --ignore-path .prettierignore",
+    "lint": "npx eslint 'src/**/*.{ts,js}'",
+    "lint:fix": "npx eslint 'src/**/*.{ts,js}' --fix",
+    "test": "jest",
+    "ci-test": "jest",
+    "coverage": "jest --coverage",
+    "build": "rimraf dist && npx ncc build src/deploy.ts -o dist/deploy && npx ncc build src/register.ts -o dist/register"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@mysten/bcs": "^1.6.0",
+    "@mysten/sui": "^1.29.0",
+    "glob": "^11.0.1"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@typescript-eslint/parser": "^8.29.1",
+    "@vercel/ncc": "^0.38.3",
+    "eslint": "^9.24.0",
+    "eslint-plugin-github": "^6.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jest": "^28.11.0",
+    "eslint-plugin-jsonc": "^2.20.0",
+    "eslint-plugin-prettier": "^5.2.6",
+    "jest": "^29.7.0",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.3.1",
+    "typescript": "^5.8.3"
+  }
+}

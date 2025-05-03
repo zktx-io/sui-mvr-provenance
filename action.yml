@@ -6,7 +6,7 @@ branding:
   color: 'blue'
 
 inputs:
-  move-directory:
+  working-directory:
     description: 'Path to the Move project directory (should contain Move.toml)'
     required: true
     default: '.'
@@ -27,7 +27,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        cd "${{ inputs.move-directory }}"
+        cd "${{ inputs.working-directory }}"
         echo "Running sui move build..."
         sui move build --dump-bytecode-as-base64 --ignore-chain >> bytecode.dump.json
 
@@ -35,5 +35,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: bytecode.dump.json
-        path: ${{ inputs.move-directory }}/bytecode.dump.json
+        path: ${{ inputs.working-directory }}/bytecode.dump.json
         if-no-files-found: error
