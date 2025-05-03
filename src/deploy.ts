@@ -13,7 +13,7 @@ const main = async () => {
   core.info(JSON.stringify(config, null, 2));
 
   core.info('📄 Bytecode Dump:');
-  core.info(JSON.stringify(dump, null, 2));
+  core.info(JSON.stringify(dump));
 
   const { modules, dependencies, digest } = dump;
 
@@ -24,8 +24,8 @@ const main = async () => {
   const transaction = new Transaction();
   transaction.setSender(config.owner);
 
-  if (config.upgrade_cap_id && config.package_id) {
-    const cap = transaction.object(config.upgrade_cap_id);
+  if (config.upgrade_id && config.package_id) {
+    const cap = transaction.object(config.upgrade_id);
     const ticket = transaction.moveCall({
       target: '0x2::package::authorize_upgrade',
       arguments: [
@@ -68,10 +68,23 @@ const main = async () => {
 
   const { effects: txEffect } = await client.waitForTransaction({
     digest: txDigest,
-    options: { showEffects: true, showEvents: true },
+    options: { showEffects: true },
   });
 
-  core.info(`✅ Transaction executed successfully.: ${txDigest}`);
+  if (!txEffect || txEffect.status.status !== 'success' || txEffect.created!.length < 2) {
+    core.setFailed(`❌ Transaction failed: ${txDigest}`);
+    core.setFailed(`❌ ${txEffect ? txEffect.status.error : 'Unknown error'}`);
+    process.exit(1);
+  } else {
+    core.info(`✅ Transaction executed successfully.: ${txDigest}`);
+    txEffect.created!.forEach(obj => {
+      if (obj.owner === 'Immutable') {
+        core.info(`✅ Package ID: ${obj.reference.objectId}`);
+      } else {
+        core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
+      }
+    });
+  }
 };
 
 main().catch(err => {

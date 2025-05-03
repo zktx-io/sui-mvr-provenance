@@ -21,7 +21,7 @@ The `working-directory` must include a `mvr.config.json` file to define deployme
   "owner": "0x123...abc",
   "package_name": "example_package",
   "package_id": "0xabc...def",
-  "upgrade_cap_id": "0xabc...def"
+  "upgrade_id": "0xabc...def"
 }
 ```
 
@@ -29,7 +29,7 @@ The `working-directory` must include a `mvr.config.json` file to define deployme
 - `owner` _(string)_: The address used to deploy the package. Must be authorized to sign.
 - `package_name` _(string, optional)_: Used for MVR registration.
 - `package_id` _(string, optional)_: The ID of the existing package. Required for MVR registration or upgrade tracking.
-- `upgrade_cap_id` _(string, optional)_: If present, triggers an upgrade instead of a fresh deploy.
+- `upgrade_id` _(string, optional)_: If present, triggers an upgrade instead of a fresh deploy.
 
 This config file will be used during deployment and provenance generation.
 

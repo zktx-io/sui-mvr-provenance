@@ -5,7 +5,7 @@ export interface MvrConfig {
   owner: string;
   package_name?: string;
   package_id?: string;
-  upgrade_cap_id?: string;
+  upgrade_id?: string;
 }
 
 export interface BytecodeDump {
