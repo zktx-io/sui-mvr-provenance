@@ -1,0 +1,39 @@
+name: 'Build and Upload Move Bytecode'
+description: 'Builds a Move package using the Sui CLI and uploads the bytecode dump for use in later CI/CD steps.'
+author: 'your-org-or-name'
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  move-directory:
+    description: 'Path to the Move project directory (should contain Move.toml)'
+    required: true
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Homebrew (for installing Sui CLI)
+      uses: Homebrew/actions/setup-homebrew@master
+
+    - name: Install Sui CLI
+      shell: bash
+      run: |
+        echo "Installing Sui CLI..."
+        brew install sui
+
+    - name: Build Move Package
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${{ inputs.move-directory }}"
+        echo "Running sui move build..."
+        sui move build --dump-bytecode-as-base64 --ignore-legacy-address-checks --ignore-chain
+
+    - name: Upload Bytecode Dump
+      uses: actions/upload-artifact@v4
+      with:
+        name: bytecode.dump.json
+        path: ${{ inputs.move-directory }}/bytecode.dump.json
+        if-no-files-found: error
