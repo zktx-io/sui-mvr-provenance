@@ -40,3 +40,10 @@ runs:
         name: bytecode.dump.json
         path: ${{ inputs.working-directory }}/bytecode.dump.json
         if-no-files-found: error
+
+    - name: Upload mvr.config.json
+      uses: actions/upload-artifact@v4
+      with:
+        name: mvr.config.json
+        path: ${{ inputs.working-directory }}/mvr.config.json
+        if-no-files-found: error
