@@ -3,14 +3,14 @@ import path from 'path';
 
 import { BytecodeDump, MvrConfig } from './type';
 
-export const loadMvrConfig = async (baseDir: string = '.'): Promise<MvrConfig> => {
-  const configPath = path.join(baseDir, 'mvr.config.json');
+export const loadMvrConfig = async (): Promise<MvrConfig> => {
+  const configPath = path.resolve('mvr.config.json');
   const configRaw = await fs.readFile(configPath, 'utf-8');
   return JSON.parse(configRaw) as MvrConfig;
 };
 
-export const loadBytecodeDump = async (baseDir: string = '.'): Promise<BytecodeDump> => {
-  const dumpPath = path.join(baseDir, 'bytecode.dump.json');
+export const loadBytecodeDump = async (): Promise<BytecodeDump> => {
+  const dumpPath = path.resolve('bytecode.dump.json');
   const dumpRaw = await fs.readFile(dumpPath, 'utf-8');
   return JSON.parse(dumpRaw) as BytecodeDump;
 };
