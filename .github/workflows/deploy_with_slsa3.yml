@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.15
+      - uses: zktx-io/sui-mvr-provenance@v0.0.16
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -37,11 +37,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bytecode.dump.json
+          path: .
 
       - name: Download mvr.config.json
         uses: actions/download-artifact@v4
         with:
           name: mvr.config.json
+          path: .
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -52,7 +54,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.15
+          ref: v0.0.16
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
         env:
