@@ -57788,14 +57788,14 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(1943));
 const path_1 = __importDefault(__nccwpck_require__(6928));
-const loadMvrConfig = async (baseDir = '.') => {
-    const configPath = path_1.default.join(baseDir, 'mvr.config.json');
+const loadMvrConfig = async () => {
+    const configPath = path_1.default.resolve('mvr.config.json');
     const configRaw = await promises_1.default.readFile(configPath, 'utf-8');
     return JSON.parse(configRaw);
 };
 exports.loadMvrConfig = loadMvrConfig;
-const loadBytecodeDump = async (baseDir = '.') => {
-    const dumpPath = path_1.default.join(baseDir, 'bytecode.dump.json');
+const loadBytecodeDump = async () => {
+    const dumpPath = path_1.default.resolve('bytecode.dump.json');
     const dumpRaw = await promises_1.default.readFile(dumpPath, 'utf-8');
     return JSON.parse(dumpRaw);
 };
