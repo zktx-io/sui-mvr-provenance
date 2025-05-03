@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.4
+      - uses: zktx-io/sui-mvr-provenance@v0.0.5
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -41,14 +41,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Run deploy script
         env:
+          GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
           ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
         run: |
-          node dist/deploy.js \
-            --dump bytecode.dump.json \
-            --config mvr.config.json \
-            --key "$ED25519_PRIVATE_KEY"
+          node dist/deploy
