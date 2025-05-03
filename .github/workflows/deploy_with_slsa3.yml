@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.12
+      - uses: zktx-io/sui-mvr-provenance@v0.0.13
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -52,27 +52,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.12
-          path: temp
+          ref: v0.0.13
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
-        working-directory: temp
         env:
           GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
           ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
         run: |
+          cd zktx-io/sui-mvr-provenance
           npm ci
           node dist/deploy
 
       - id: encode
         run: |
-          if [ ! -f temp/dist/provenance.json ]; then
-            echo "::error::❌ provenance.json not found"
+          if [ ! -f provenance.json ]; then
+            echo "::error file=provenance.json::❌ provenance.json not found"
             exit 1
           fi
-          base64_file=$(base64 -w0 temp/dist/provenance.json)
+          base64_file=$(base64 -w0 provenance.json)
           echo "base64_file=$base64_file" >> "$GITHUB_OUTPUT"
-  
+
   provenance:
     needs: deploy
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
