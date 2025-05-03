@@ -55,6 +55,9 @@ jobs:
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
         working-directory: temp
+        env:
+          GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
+          ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
         run: |
           npm ci
           node dist/deploy
