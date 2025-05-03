@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.5
+      - uses: zktx-io/sui-mvr-provenance@v0.0.6
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -31,19 +31,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: download
-        uses: actions/download-artifact@v4
-        with:
-          name: bytecode.dump.json
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Run deploy script
-        env:
-          GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
-          ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: zktx-io/sui-mvr-provenance
+          ref: v0.0.6
+          path: temp
+
+      - name: Run deploy.js from zktx-io/sui-mvr-provenance
+        working-directory: temp
         run: |
+          npm ci
           node dist/deploy
