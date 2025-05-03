@@ -18,8 +18,8 @@ Uploads a single artifact named `bytecode.dump.json`, containing base64-encoded 
 ## 🛠 Example
 
 ```yaml
-- name: Build Move Package
-  uses: your-org/move-build-action@v1
+- name: Build and Upload Move Bytecode
+  uses: zktx-io/sui-mvr-provenance@v0.0.0
   with:
     move-directory: ./my-move-package
 ```
