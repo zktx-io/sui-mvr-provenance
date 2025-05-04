@@ -57400,7 +57400,7 @@ const main = async () => {
         process.exit(1);
     }
     else {
-        core.info(`✅ Transaction executed successfully.: ${txDigest}`);
+        core.info(`✅ Transaction executed successfully: ${txDigest}`);
         txEffect.created.forEach(obj => {
             if (obj.owner === 'Immutable') {
                 package_id = obj.reference.objectId;
