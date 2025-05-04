@@ -42,7 +42,8 @@
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@mysten/sui": "^1.29.0"
+    "@mysten/sui": "^1.29.1",
+    "@mysten/suins": "^0.7.15"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
