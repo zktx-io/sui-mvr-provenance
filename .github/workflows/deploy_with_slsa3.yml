@@ -186,4 +186,3 @@ jobs:
         run: |
           npm ci
           node dist/register
-  
