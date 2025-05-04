@@ -67,21 +67,26 @@ jobs:
           npm ci
           node dist/deploy
 
-      - name: Upload provenance.json
+      - name: Upload deploy.json
         uses: actions/upload-artifact@v4
         with:
-          name: provenance.json
-          path: provenance.json
+          name: deploy.json
+          path: deploy.json
           if-no-files-found: error
 
       - id: encode
         run: |
-          HASH=$(sha256sum provenance.json | awk '{print $1}')
-          SUBJECT_LINE="$HASH provenance.json"
-          BASE64_SUBJECT=$(echo -n "$SUBJECT_LINE" | base64 -w0)
+          HASHES=""
+          for FILE in deploy.json mvr.config.json; do
+            if [ ! -f "$FILE" ]; then
+              echo "::error::❌ $FILE not found"
+              exit 1
+            fi
+            FILE_HASH=$(sha256sum "$FILE" | cut -d ' ' -f 1)
+            HASHES+="${FILE_HASH}  ${FILE}"$'\n'
+          done
 
-          echo "base64_file=$(base64 -w0 provenance.json)" >> "$GITHUB_OUTPUT"
-          echo "base64_hashes=$BASE64_SUBJECT" >> "$GITHUB_OUTPUT"
+          echo "base64_hashes=$(echo -n "$HASHES" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
   provenance:
     needs: deploy
@@ -101,10 +106,16 @@ jobs:
           name: mvr.intoto.jsonl
           path: .
 
-      - name: Download provenance.json (to verify)
+      - name: Download deploy.json artifacts
         uses: actions/download-artifact@v4
         with:
-          name: provenance.json
+          name: deploy.json
+          path: .
+
+      - name: Download mvr.meta.config artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mvr.config.json
           path: .
 
       - name: Install slsa-verifier
@@ -113,12 +124,15 @@ jobs:
           chmod +x slsa-verifier
           sudo mv slsa-verifier /usr/local/bin/
 
-      - name: Verify provenance.json against SLSA
+      - name: Verify all provenance files
         run: |
-          slsa-verifier verify-artifact provenance.json \
-            --provenance-path mvr.intoto.jsonl \
-            --source-uri "github.com/${{ github.repository }}" \
-            || {
-              echo "::error::❌ SLSA verification failed"
-              exit 1
-            }
+          for FILE in deploy.json mvr.config.json; do
+            echo "🔍 Verifying $FILE..."
+            slsa-verifier verify-artifact "$FILE" \
+              --provenance-path mvr.intoto.jsonl \
+              --source-uri "github.com/${{ github.repository }}" \
+              || {
+                echo "::error::❌ Verification failed for $FILE"
+                exit 1
+              }
+          done

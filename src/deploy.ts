@@ -93,7 +93,7 @@ const main = async () => {
 
     if (txEffect.created!.length === 1) {
       await fs.writeFile(
-        path.join(process.cwd(), '../provenance.json'),
+        path.join(process.cwd(), '../deploy.json'),
         JSON.stringify({
           digest: txDigest,
           modules,
@@ -103,7 +103,7 @@ const main = async () => {
       );
     } else {
       await fs.writeFile(
-        path.join(process.cwd(), '../provenance.json'),
+        path.join(process.cwd(), '../deploy.json'),
         JSON.stringify({
           digest: txDigest,
           modules,
