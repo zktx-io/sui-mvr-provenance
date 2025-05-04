@@ -57337,7 +57337,7 @@ const load_1 = __nccwpck_require__(3469);
 const main = async () => {
     const config = await (0, load_1.loadMvrConfig)();
     const dump = await (0, load_1.loadBytecodeDump)();
-    const { signer } = await (0, getSigner_1.getSigner)(config);
+    const { signer, isGitSigner } = await (0, getSigner_1.getSigner)(config);
     core.info('📦 MVR Config:');
     core.info(JSON.stringify(config, null, 2));
     core.info('📄 Bytecode Dump:');
@@ -57388,6 +57388,8 @@ const main = async () => {
         digest: txDigest,
         options: { showEffects: true },
     });
+    let package_id;
+    let upgrade_id;
     if (!txEffect ||
         txEffect.status.status !== 'success' ||
         (config.upgrade_id && config.package_id
@@ -57401,31 +57403,46 @@ const main = async () => {
         core.info(`✅ Transaction executed successfully.: ${txDigest}`);
         txEffect.created.forEach(obj => {
             if (obj.owner === 'Immutable') {
+                package_id = obj.reference.objectId;
                 core.info(`✅ Package ID: ${obj.reference.objectId}`);
             }
             else {
+                upgrade_id = obj.reference.objectId;
                 core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
             }
         });
-        if (txEffect.created.length === 1) {
-            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify({
+        if (txEffect.created.length === 1 && !!package_id) {
+            const deploy = {
                 digest: txDigest,
                 modules,
                 dependencies,
-                package: config.package_id,
-            }));
+                package_id,
+                upgrade_id: config.upgrade_id,
+            };
+            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
+        }
+        else if (!!package_id && !!upgrade_id) {
+            const deploy = {
+                digest: txDigest,
+                modules,
+                dependencies,
+                package_id,
+                upgrade_id,
+            };
+            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
         }
         else {
-            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify({
-                digest: txDigest,
-                modules,
-                dependencies,
-            }));
+            core.setFailed('❌ Transaction failed: No package or upgrade ID found');
+            process.exit(1);
+        }
+        if (isGitSigner) {
+            const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
+            await signer.signPersonalMessage(message, true);
         }
     }
 };
 main().catch(err => {
-    core.setFailed(`❌ Error running test script: ${err}`);
+    core.setFailed(`❌ Error running deploy script: ${err}`);
     process.exit(1);
 });
 
