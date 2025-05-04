@@ -48,7 +48,7 @@ Uploads a single artifact named `bytecode.dump.json`, containing base64-encoded 
 
 ```yaml
 - name: Build and Upload Move Bytecode
-  uses: zktx-io/sui-mvr-provenance@v0.0.20
+  uses: zktx-io/sui-mvr-provenance@v0.0.21
   with:
     working-directory: ./my-move-package
 ```

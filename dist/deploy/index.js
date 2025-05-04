@@ -57408,7 +57408,7 @@ const main = async () => {
             }
         });
         if (txEffect.created.length === 1) {
-            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../provenance.json'), JSON.stringify({
+            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify({
                 digest: txDigest,
                 modules,
                 dependencies,
@@ -57416,7 +57416,7 @@ const main = async () => {
             }));
         }
         else {
-            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../provenance.json'), JSON.stringify({
+            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify({
                 digest: txDigest,
                 modules,
                 dependencies,
