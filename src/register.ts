@@ -11,12 +11,12 @@ const main = async () => {
   const config = await loadMvrConfig();
   const { signer, isGitSigner } = await getSigner(config);
 
-  if (config.package_name && config.package_name.split('/').length !== 2) {
+  if (config.app_name && config.app_name.split('/').length !== 2) {
     return;
   }
 
-  const suins = config.package_name?.split('/')[0].replace('@', '')!;
-  const pkgName = config.package_name?.split('/')[1]!;
+  const suins = config.app_name?.split('/')[0].replace('@', '')!;
+  const pkgName = config.app_name?.split('/')[1]!;
 
   const client = new SuiClient({ url: getFullnodeUrl('mainnet') });
   const suinsClient = new SuinsClient({
@@ -58,14 +58,14 @@ const main = async () => {
   }
 
   const registryObj = await suinsClient.getNameRecord('registry-obj@mvr');
-  const cache = await mvrResolver(['@mvr/core', config.package_name], config.network);
+  const cache = await mvrResolver(['@mvr/core', '@mvr/metadata', config.app_name], config.network);
 
   if (!registryObj || !registryObj.targetAddress) {
     core.setFailed(`❌ Registry object not found`);
     return;
   }
 
-  if (cache[config.package_name]) {
+  if (cache[config.app_name]) {
     // TODO Update
   } else {
     const transaction = new Transaction();
@@ -87,7 +87,7 @@ const main = async () => {
         transaction.object(registryObj.targetAddress),
         appCap,
         transaction.pure.string('description'),
-        transaction.pure.string(config.package_desc),
+        transaction.pure.string(config.app_desc),
       ],
     });
   }

@@ -19,23 +19,23 @@ The `working-directory` must include a `mvr.config.json` file to define deployme
 {
   "network": "mainnet",
   "owner": "0x123...abc",
-  "package_name": "@myname/app",
-  "package_desc": "My App Description",
+  "app_name": "@myname/app",
+  "app_desc": "My App Description",
   "upgrade_cap": "0xabc...def"
 }
 ```
 
 - `network` _(string)_: The Sui network to deploy to. One of "mainnet", "testnet", or "devnet".
 - `owner` _(string)_: The address used to deploy the package. Must be authorized to sign.
-- `package_name` _(string)_: MVR package name in @name/app format. Required for MVR registration.
-- `package_desc` _(string)_: Short description of the package (e.g., "My token standard"). Required for MVR registration.
+- `app_name` _(string)_: MVR package name in @name/app format. Required for MVR registration.
+- `app_desc` _(string)_: Short description of the package (e.g., "My token standard"). Required for MVR registration.
 - `upgrade_cap` _(string, optional)_: If present, triggers an upgrade instead of a fresh deploy.
 
 This config file will be used during deployment and provenance generation.
 
 ## 🔧 Behavior
 
-- If either `package_name` or `package_desc` is missing, deployment proceeds but MVR registration is skipped.
+- If either `app_name` or `app_desc` is missing, deployment proceeds but MVR registration is skipped.
 - If upgrade_cap is provided, it automatically resolves the package_id using the chain state.
 - The config file must exist at ${{ inputs.working-directory }}/mvr.config.json.
 
@@ -66,7 +66,7 @@ This workflow registers the following three files as **metadata** in the **Move 
 | File Name          | Description                                                                                                                        |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `deploy.json`      | Contains information about the deployed Move package, such as `package_id`, `upgrade_id`, `digest`, `modules`, and `dependencies`. |
-| `mvr.config.json`  | Defines deployment configuration, including `package_name`, `owner`, `network`, `upgrade_id`, etc.                                 |
+| `mvr.config.json`  | Defines deployment configuration, including `app_name`, `owner`, `network`, `upgrade_id`, etc.                                 |
 | `mvr.intoto.jsonl` | A **provenance file** generated via SLSA & Sigstore to verify the integrity and authenticity of the above files.                   |
 
 This metadata is stored in MVR to enable:
@@ -75,4 +75,4 @@ This metadata is stored in MVR to enable:
 - 🔁 Separate management of the same named packages across **mainnet and testnet**
 - 🔎 Support for **named references** like `@suins/appName::module::function`
 
-> 💡 If `package_name` is not provided, MVR registration is skipped. The name must follow the format `@suinsName/appName` (e.g., `@mvr/counter`).
+> 💡 If `app_name` is not provided, MVR registration is skipped. The name must follow the format `@suinsName/appName` (e.g., `@mvr/counter`).

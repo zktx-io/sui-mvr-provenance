@@ -106,10 +106,10 @@ const main = async () => {
     core.info(`✅ Transaction executed successfully: ${txDigest}`);
     txEffect.created!.forEach(obj => {
       if (obj.owner === 'Immutable') {
-        core.info(`✅ Package ID: ${obj.reference.objectId}`);
+        core.info(`✅ Package Obj: ${obj.reference.objectId}`);
       } else {
         upgrade_cap = obj.reference.objectId;
-        core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
+        core.info(`✅ Upgrade Cap: ${obj.reference.objectId}`);
       }
     });
 
@@ -127,6 +127,8 @@ const main = async () => {
       );
       await (signer as GitSigner).signPersonalMessage(message, true);
     }
+
+    core.info(`https://suiscan.xyz/${config.network}/tx/${txDigest}`);
   }
 };
 

@@ -3,8 +3,8 @@ export type Network = 'mainnet' | 'testnet';
 export interface MvrConfig {
   network: Network;
   owner: string;
-  package_name: string;
-  package_desc: string;
+  app_name: string;
+  app_desc: string;
   upgrade_cap?: string;
 }
 
