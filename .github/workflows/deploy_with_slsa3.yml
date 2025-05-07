@@ -147,10 +147,23 @@ jobs:
           name: mvr.config.json
           path: .
 
-      - name: Check for package_name in mvr.config.json
+      - name: Check for valid package_name and package_desc in mvr.config.json
         run: |
-          if ! jq -e '.package_name' mvr.config.json > /dev/null; then
+          PACKAGE_NAME=$(jq -r '.package_name // empty' mvr.config.json)
+          PACKAGE_DESC=$(jq -r '.package_desc // empty' mvr.config.json)
+
+          if [[ -z "$PACKAGE_NAME" ]]; then
             echo "::warning::⚠️ 'package_name' is missing in mvr.config.json. Skipping MVR registration."
+            exit 0
+          fi
+
+          if [[ ! "$PACKAGE_NAME" =~ ^@[^/]+\/[^/]+$ ]]; then
+            echo "::warning::⚠️ 'package_name' must be in the format '@suinsName/appName' (e.g. @mvr/app). Skipping MVR registration."
+            exit 0
+          fi
+
+          if [[ -z "$PACKAGE_DESC" ]]; then
+            echo "::warning::⚠️ 'package_desc' is missing. Skipping MVR registration."
             exit 0
           fi
 
