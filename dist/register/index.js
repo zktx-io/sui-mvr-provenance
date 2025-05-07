@@ -61995,21 +61995,27 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(37484));
 const client_1 = __nccwpck_require__(70827);
+const transactions_1 = __nccwpck_require__(59417);
 const suins_1 = __nccwpck_require__(8154);
 const getSigner_1 = __nccwpck_require__(73207);
 const load_1 = __nccwpck_require__(23469);
+const mvrResolver_1 = __nccwpck_require__(19076);
 const main = async () => {
     const config = await (0, load_1.loadMvrConfig)();
     const { signer, isGitSigner } = await (0, getSigner_1.getSigner)(config);
-    const package_name = config.package_name;
-    const client = new client_1.SuiClient({ url: (0, client_1.getFullnodeUrl)(config.network) });
+    if (config.package_name && config.package_name.split('/').length !== 2) {
+        return;
+    }
+    const suins = config.package_name?.split('/')[0].replace('@', '');
+    const pkgName = config.package_name?.split('/')[1];
+    const client = new client_1.SuiClient({ url: (0, client_1.getFullnodeUrl)('mainnet') });
     const suinsClient = new suins_1.SuinsClient({
         client,
-        network: config.network,
+        network: 'mainnet',
     });
-    const record = await suinsClient.getNameRecord(package_name.endsWith('.sui') ? package_name : `${package_name}.sui`);
+    const record = await suinsClient.getNameRecord(suins.endsWith('.sui') ? suins : `${suins}.sui`);
     if (!record) {
-        core.setFailed(`❌ Name record not found for ${package_name}`);
+        core.setFailed(`❌ Name record not found for ${suins}`);
         return;
     }
     const obj = await client.getObject({
@@ -62017,7 +62023,7 @@ const main = async () => {
         options: { showOwner: true, showType: true },
     });
     if (!obj) {
-        core.setFailed(`❌ Object not found for ${package_name}`);
+        core.setFailed(`❌ Object not found for ${suins}`);
         return;
     }
     if ((typeof obj.data.owner === 'object' &&
@@ -62026,9 +62032,40 @@ const main = async () => {
         core.setFailed(`❌ Object ${record.nftId} is not owned by ${config.owner}. Current owner: ${obj.data.owner.AddressOwner}`);
         return;
     }
-    if (obj.data.type?.endsWith('::SuinsRegistration')) {
+    if (!obj.data.type?.endsWith('::SuinsRegistration')) {
         core.setFailed(`❌ Object ${record.nftId} is not a Suins object`);
         return;
+    }
+    const registryObj = await suinsClient.getNameRecord('registry-obj@mvr');
+    const cache = await (0, mvrResolver_1.mvrResolver)(['@mvr/core', config.package_name], config.network);
+    if (!registryObj || !registryObj.targetAddress) {
+        core.setFailed(`❌ Registry object not found`);
+        return;
+    }
+    if (cache[config.package_name]) {
+        // TODO Update
+    }
+    else {
+        const transaction = new transactions_1.Transaction();
+        transaction.setSender(config.owner);
+        const appCap = transaction.moveCall({
+            target: `${cache['@mvr/core']}::move_registry::register`,
+            arguments: [
+                transaction.object(registryObj.targetAddress),
+                transaction.object(record.nftId),
+                transaction.pure.string(pkgName),
+                transaction.object.clock(),
+            ],
+        });
+        transaction.moveCall({
+            target: `${cache['@mvr/core']}::move_registry::set_metadata`,
+            arguments: [
+                transaction.object(registryObj.targetAddress),
+                appCap,
+                transaction.pure.string('description'),
+                transaction.pure.string(config.package_desc),
+            ],
+        });
     }
 };
 main().catch(err => {
@@ -62407,6 +62444,56 @@ const loadBytecodeDump = async () => {
     return JSON.parse(dumpRaw);
 };
 exports.loadBytecodeDump = loadBytecodeDump;
+
+
+/***/ }),
+
+/***/ 19076:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.mvrResolver = void 0;
+const MAX_BATCH_SIZE = 25; // files to process per batch.
+const MAINNET_API_URL = 'https://mainnet.mvr.mystenlabs.com';
+const TESTNET_API_URL = 'https://testnet.mvr.mystenlabs.com';
+const batch = (array, batchSize = MAX_BATCH_SIZE) => {
+    const result = [];
+    for (let i = 0; i < array.length; i += batchSize) {
+        result.push(array.slice(i, i + batchSize)); // Create batches
+    }
+    return result;
+};
+const mvrResolver = async (packages, network) => {
+    const batches = batch(packages, 50);
+    const results = {};
+    const apiUrl = network === 'testnet' ? TESTNET_API_URL : MAINNET_API_URL;
+    await Promise.all(batches.map(async (batch) => {
+        const response = await fetch(`${apiUrl}/v1/resolution/bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                names: batch,
+            }),
+        });
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            throw new Error(`Failed to resolve packages: ${errorBody?.message}`);
+        }
+        const data = await response.json();
+        if (!data?.resolution)
+            return;
+        for (const pkg of Object.keys(data?.resolution)) {
+            const pkgData = data.resolution[pkg]?.package_id;
+            if (!pkgData)
+                continue;
+            results[pkg] = pkgData;
+        }
+    }));
+    return results;
+};
+exports.mvrResolver = mvrResolver;
 
 
 /***/ }),

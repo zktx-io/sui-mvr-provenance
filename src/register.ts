@@ -1,28 +1,33 @@
 import * as core from '@actions/core';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
+import { Transaction } from '@mysten/sui/transactions';
 import { SuinsClient } from '@mysten/suins';
 
 import { getSigner } from './utils/getSigner';
 import { loadMvrConfig } from './utils/load';
+import { mvrResolver } from './utils/mvrResolver';
 
 const main = async () => {
   const config = await loadMvrConfig();
   const { signer, isGitSigner } = await getSigner(config);
 
-  const package_name = config.package_name!;
+  if (config.package_name && config.package_name.split('/').length !== 2) {
+    return;
+  }
 
-  const client = new SuiClient({ url: getFullnodeUrl(config.network) });
+  const suins = config.package_name?.split('/')[0].replace('@', '')!;
+  const pkgName = config.package_name?.split('/')[1]!;
+
+  const client = new SuiClient({ url: getFullnodeUrl('mainnet') });
   const suinsClient = new SuinsClient({
     client,
-    network: config.network,
+    network: 'mainnet',
   });
 
-  const record = await suinsClient.getNameRecord(
-    package_name.endsWith('.sui') ? package_name : `${package_name}.sui`,
-  );
+  const record = await suinsClient.getNameRecord(suins.endsWith('.sui') ? suins : `${suins}.sui`);
 
   if (!record) {
-    core.setFailed(`❌ Name record not found for ${package_name}`);
+    core.setFailed(`❌ Name record not found for ${suins}`);
     return;
   }
 
@@ -32,7 +37,7 @@ const main = async () => {
   });
 
   if (!obj) {
-    core.setFailed(`❌ Object not found for ${package_name}`);
+    core.setFailed(`❌ Object not found for ${suins}`);
     return;
   }
 
@@ -47,9 +52,44 @@ const main = async () => {
     return;
   }
 
-  if (obj.data!.type?.endsWith('::SuinsRegistration')) {
+  if (!obj.data!.type?.endsWith('::SuinsRegistration')) {
     core.setFailed(`❌ Object ${record.nftId} is not a Suins object`);
     return;
+  }
+
+  const registryObj = await suinsClient.getNameRecord('registry-obj@mvr');
+  const cache = await mvrResolver(['@mvr/core', config.package_name], config.network);
+
+  if (!registryObj || !registryObj.targetAddress) {
+    core.setFailed(`❌ Registry object not found`);
+    return;
+  }
+
+  if (cache[config.package_name]) {
+    // TODO Update
+  } else {
+    const transaction = new Transaction();
+    transaction.setSender(config.owner);
+
+    const appCap = transaction.moveCall({
+      target: `${cache['@mvr/core']}::move_registry::register`,
+      arguments: [
+        transaction.object(registryObj.targetAddress),
+        transaction.object(record.nftId),
+        transaction.pure.string(pkgName),
+        transaction.object.clock(),
+      ],
+    });
+
+    transaction.moveCall({
+      target: `${cache['@mvr/core']}::move_registry::set_metadata`,
+      arguments: [
+        transaction.object(registryObj.targetAddress),
+        appCap,
+        transaction.pure.string('description'),
+        transaction.pure.string(config.package_desc),
+      ],
+    });
   }
 };
 

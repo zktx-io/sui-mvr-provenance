@@ -57348,8 +57348,24 @@ const main = async () => {
     });
     const transaction = new transactions_1.Transaction();
     transaction.setSender(config.owner);
-    if (config.upgrade_id && config.package_id) {
-        const cap = transaction.object(config.upgrade_id);
+    if (config.upgrade_cap) {
+        const { data } = await client.getObject({
+            id: config.upgrade_cap,
+            options: { showContent: true, showType: true },
+        });
+        if (!data ||
+            data.type !== '0x2::package::UpgradeCap' ||
+            data.content?.dataType !== 'moveObject') {
+            core.setFailed(`❌ Upgrade cap not found: ${config.upgrade_cap}`);
+            process.exit(1);
+        }
+        const fields = data.content.fields;
+        if (!fields.package) {
+            core.setFailed(`❌ 'package' field not found in UpgradeCap`);
+            process.exit(1);
+        }
+        const packageId = fields.package;
+        const cap = transaction.object(config.upgrade_cap);
         const ticket = transaction.moveCall({
             target: '0x2::package::authorize_upgrade',
             arguments: [
@@ -57361,7 +57377,7 @@ const main = async () => {
         const upgrade = transaction.upgrade({
             modules,
             dependencies,
-            package: config.package_id,
+            package: packageId,
             ticket,
         });
         transaction.moveCall({
@@ -57388,53 +57404,30 @@ const main = async () => {
         digest: txDigest,
         options: { showEffects: true },
     });
-    let package_id;
-    let upgrade_id;
-    if (!txEffect ||
-        txEffect.status.status !== 'success' ||
-        (config.upgrade_id && config.package_id
-            ? txEffect.created.length !== 1
-            : txEffect.created.length < 2)) {
+    if (!txEffect || txEffect.status.status !== 'success') {
         core.setFailed(`❌ Transaction failed: ${txDigest}`);
         core.setFailed(`❌ ${txEffect ? txEffect.status.error : 'Unknown error'}`);
         process.exit(1);
     }
     else {
+        let upgrade_cap = config.upgrade_cap;
         core.info(`✅ Transaction executed successfully: ${txDigest}`);
         txEffect.created.forEach(obj => {
             if (obj.owner === 'Immutable') {
-                package_id = obj.reference.objectId;
                 core.info(`✅ Package ID: ${obj.reference.objectId}`);
             }
             else {
-                upgrade_id = obj.reference.objectId;
+                upgrade_cap = obj.reference.objectId;
                 core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
             }
         });
-        if (txEffect.created.length === 1 && !!package_id) {
-            const deploy = {
-                digest: txDigest,
-                modules,
-                dependencies,
-                package_id,
-                upgrade_id: config.upgrade_id,
-            };
-            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
-        }
-        else if (!!package_id && !!upgrade_id) {
-            const deploy = {
-                digest: txDigest,
-                modules,
-                dependencies,
-                package_id,
-                upgrade_id,
-            };
-            await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
-        }
-        else {
-            core.setFailed('❌ Transaction failed: No package or upgrade ID found');
-            process.exit(1);
-        }
+        const deploy = {
+            digest: txDigest,
+            modules,
+            dependencies,
+            upgrade_cap: upgrade_cap,
+        };
+        await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
         if (isGitSigner) {
             const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
             await signer.signPersonalMessage(message, true);

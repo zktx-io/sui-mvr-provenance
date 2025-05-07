@@ -3,9 +3,9 @@ export type Network = 'mainnet' | 'testnet';
 export interface MvrConfig {
   network: Network;
   owner: string;
-  package_name?: string; // mvr package name
-  package_id?: string;
-  upgrade_id?: string;
+  package_name: string;
+  package_desc: string;
+  upgrade_cap?: string;
 }
 
 export interface BytecodeDump {
@@ -18,6 +18,5 @@ export interface Deploy {
   digest: string;
   modules: string[];
   dependencies: string[];
-  upgrade_id: string;
-  package_id: string;
+  upgrade_cap: string;
 }
