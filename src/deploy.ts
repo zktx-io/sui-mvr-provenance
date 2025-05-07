@@ -45,7 +45,13 @@ const main = async () => {
       process.exit(1);
     }
 
-    const fields = data.content.fields as Record<string, any>;
+    const fields = data.content.fields as { package: string };
+
+    if (!fields.package) {
+      core.setFailed(`❌ 'package' field not found in UpgradeCap`);
+      process.exit(1);
+    }
+
     const packageId = fields.package;
 
     const cap = transaction.object(config.upgrade_cap);
