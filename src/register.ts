@@ -65,12 +65,10 @@ const main = async () => {
     return;
   }
 
-  if (cache[config.app_name]) {
-    // TODO Update
-  } else {
-    const transaction = new Transaction();
-    transaction.setSender(config.owner);
+  const transaction = new Transaction();
+  transaction.setSender(config.owner);
 
+  if (!cache[config.app_name]) {
     const appCap = transaction.moveCall({
       target: `${cache['@mvr/core']}::move_registry::register`,
       arguments: [
@@ -80,7 +78,6 @@ const main = async () => {
         transaction.object.clock(),
       ],
     });
-
     transaction.moveCall({
       target: `${cache['@mvr/core']}::move_registry::set_metadata`,
       arguments: [
@@ -91,6 +88,10 @@ const main = async () => {
       ],
     });
   }
+
+  // TODO
+
+  
 };
 
 main().catch(err => {
