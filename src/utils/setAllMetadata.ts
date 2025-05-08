@@ -72,8 +72,8 @@ export const setAllMetadata = (
     ['tx_digest', tx_digest],
     ['provenance_0', chunk[0]],
     ['provenance_1', chunk[1]],
-    ['provenance_0', chunk[2]],
-    ['provenance_1', chunk[3]],
+    ['provenance_2', chunk[2]],
+    ['provenance_3', chunk[3]],
   ];
 
   return (transaction: Transaction) => {
