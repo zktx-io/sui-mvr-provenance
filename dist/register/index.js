@@ -62115,9 +62115,10 @@ const main = async () => {
                 const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
                 await signer.signPersonalMessage(message, true);
             }
-            core.info(`✅ App Cap: ${appCap.objectId}`);
-            core.info(`✅ Package Info: ${pkgInfo.objectId}`);
             core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
+            core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
+            core.info(`  "app_cap": "${appCap.objectId}",`);
+            core.info(`  "pkg_info": "${pkgInfo.objectId}"`);
         }
     }
     else if (!!config.app_cap && !!config.pkg_info) {
@@ -62205,8 +62206,12 @@ exports.setMetaData = setMetaData;
 const addAllMetadata = (metadataTarget, registry, appCap, config, deploy, provenance) => {
     const keys = [
         ['description', config.app_desc],
-        ['homepage_url', config.homepage_url],
-        ['documentation_url', config.documentation_url],
+        ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || undefined)],
+        [
+            'documentation_url',
+            config.documentation_url ??
+                (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : undefined),
+        ],
         ['icon_url', config.icon_url],
         ['contact', config.contact],
         // ['deploy', JSON.stringify(deploy)],

@@ -52,8 +52,12 @@ export const addAllMetadata = (
 ): ((tx: Transaction) => TransactionResult) => {
   const keys: [string, string | undefined][] = [
     ['description', config.app_desc],
-    ['homepage_url', config.homepage_url],
-    ['documentation_url', config.documentation_url],
+    ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || undefined)],
+    [
+      'documentation_url',
+      config.documentation_url ??
+        (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : undefined),
+    ],
     ['icon_url', config.icon_url],
     ['contact', config.contact],
     // ['deploy', JSON.stringify(deploy)],
