@@ -2,7 +2,7 @@ import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 
 import { Deploy, MvrConfig } from './type';
 
-export const setMetaData = (
+const setMetaData = (
   target: string,
   key: string,
   value: string,
@@ -32,7 +32,7 @@ export const setMetaData = (
   };
 };
 
-export const addAllMetadata = (
+export const setAllMetadata = (
   metadataTarget: string,
   registry: {
     $kind: 'Input';
