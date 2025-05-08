@@ -57396,12 +57396,8 @@ const main = async () => {
     else {
         let upgrade_cap = config.upgrade_cap;
         txEffect.created.forEach(obj => {
-            if (obj.owner === 'Immutable') {
-                core.info(`✅ Package Obj: ${obj.reference.objectId}`);
-            }
-            else {
+            if (obj.owner !== 'Immutable') {
                 upgrade_cap = obj.reference.objectId;
-                core.info(`✅ Upgrade Cap: ${obj.reference.objectId}`);
             }
         });
         const deploy = {
@@ -57416,6 +57412,8 @@ const main = async () => {
             await signer.signPersonalMessage(message, true);
         }
         core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
+        core.info(`⚠️ To perform upgrades later, add this to your mvr.config.json:`);
+        core.info(`  "upgrade_cap": "${upgrade_cap}"`);
     }
 };
 main().catch(err => {
