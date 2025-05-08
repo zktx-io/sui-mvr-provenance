@@ -50,6 +50,10 @@ export const unsetAllMetadata = (
     'provenance_1',
     'provenance_2',
     'provenance_3',
+    'provenance_4',
+    'provenance_5',
+    'provenance_6',
+    'provenance_7',
   ];
 
   return (transaction: Transaction) => {
