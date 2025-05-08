@@ -66,7 +66,7 @@ These artifacts are reused across the provenance, verify, and mvr-register jobs 
 
 ```yaml
 - name: Build and Upload Move Bytecode
-  uses: zktx-io/sui-mvr-provenance@v0.0.27
+  uses: zktx-io/sui-mvr-provenance@v0.0.28
   with:
     working-directory: ./my-move-package
 ```

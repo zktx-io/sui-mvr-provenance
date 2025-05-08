@@ -62209,8 +62209,8 @@ const addAllMetadata = (metadataTarget, registry, appCap, config, deploy, proven
         ['documentation_url', config.documentation_url],
         ['icon_url', config.icon_url],
         ['contact', config.contact],
-        ['deploy', JSON.stringify(deploy)],
-        ['provenance', JSON.stringify(provenance)],
+        // ['deploy', JSON.stringify(deploy)],
+        // ['provenance', JSON.stringify(provenance)],
     ];
     return (transaction) => {
         let lastResult;
