@@ -48,6 +48,8 @@ export const unsetAllMetadata = (
     'tx_digest',
     'provenance_0',
     'provenance_1',
+    'provenance_2',
+    'provenance_3',
   ];
 
   return (transaction: Transaction) => {
