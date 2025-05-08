@@ -172,11 +172,12 @@ const main = async () => {
         );
         await (signer as GitSigner).signPersonalMessage(message, true);
       }
-      core.info(`✅ App Cap: ${(appCap as any).objectId}`);
-      core.info(`✅ Package Info: ${(pkgInfo as any).objectId}`);
       core.info(
         `✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`,
       );
+      core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
+      core.info(`  "app_cap": "${(appCap as any).objectId}",`);
+      core.info(`  "pkg_info": "${(pkgInfo as any).objectId}"`);
     }
   } else if (!!config.app_cap && !!config.pkg_info) {
     const transaction = new Transaction();
