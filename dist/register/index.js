@@ -62706,7 +62706,7 @@ const setMetaData = (target, key, value, registryObj, appCap) => {
     };
 };
 const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, provenance) => {
-    const chunk = splitBase64IntoChunks(provenance, 2);
+    const chunk = splitBase64IntoChunks(provenance, 4);
     const keys = [
         ['description', config.app_desc],
         ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -62719,6 +62719,8 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
         ['tx_digest', tx_digest],
         ['provenance_0', chunk[0]],
         ['provenance_1', chunk[1]],
+        ['provenance_0', chunk[2]],
+        ['provenance_1', chunk[3]],
     ];
     return (transaction) => {
         let lastResult;
@@ -62758,6 +62760,8 @@ const unsetAllMetadata = (metadataTarget, registry, appCap) => {
         'tx_digest',
         'provenance_0',
         'provenance_1',
+        'provenance_2',
+        'provenance_3',
     ];
     return (transaction) => {
         let lastResult;
