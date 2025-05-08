@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.26
+      - uses: zktx-io/sui-mvr-provenance@v0.0.27
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.26
+          ref: v0.0.27
           path: temp
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
@@ -142,50 +142,51 @@ jobs:
           path: .
 
       - name: Check for valid app_name and app_desc in mvr.config.json
+        id: check_config
         run: |
           PACKAGE_NAME=$(jq -r '.app_name // empty' mvr.config.json)
           PACKAGE_DESC=$(jq -r '.app_desc // empty' mvr.config.json)
-
-          if [[ -z "$PACKAGE_NAME" ]]; then
-            echo "::warning::⚠️ 'app_name' is missing in mvr.config.json. Skipping MVR registration."
-            exit 0
+      
+          if [[ -z "$PACKAGE_NAME" || -z "$PACKAGE_DESC" || ! "$PACKAGE_NAME" =~ ^@[^/]+\/[^/]+$ ]]; then
+            echo "skip_mvr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_mvr=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if [[ ! "$PACKAGE_NAME" =~ ^@[^/]+\/[^/]+$ ]]; then
-            echo "::warning::⚠️ 'app_name' must be in the format '@suinsName/appName' (e.g. @mvr/app). Skipping MVR registration."
-            exit 0
-          fi
-
-          if [[ -z "$PACKAGE_DESC" ]]; then
-            echo "::warning::⚠️ 'app_desc' is missing. Skipping MVR registration."
-            exit 0
-          fi
+      - name: Skipping MVR registration
+        if: steps.check_config.outputs.skip_mvr == 'true'
+        run: echo "⚠️ Skipping MVR registration due to missing or invalid config fields."
 
       - name: Download provenance file
+        if: steps.check_config.outputs.skip_mvr == 'false'
         uses: actions/download-artifact@v4
         with:
           name: mvr.intoto.jsonl
           path: .
 
       - name: Download deploy.json artifacts
+        if: steps.check_config.outputs.skip_mvr == 'false'
         uses: actions/download-artifact@v4
         with:
           name: deploy.json
           path: .
 
       - name: Set up Node.js
+        if: steps.check_config.outputs.skip_mvr == 'false'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Checkout
+        if: steps.check_config.outputs.skip_mvr == 'false'
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.26
+          ref: v0.0.27
           path: temp
 
       - name: Set Git metadata as environment variables
+        if: steps.check_config.outputs.skip_mvr == 'false'
         id: set_git_metadata
         run: |
           echo "GIT_REPO=https://github.com/${{ github.repository }}" >> "$GITHUB_ENV"
@@ -193,6 +194,7 @@ jobs:
           echo "GIT_COMMIT=${{ github.sha }}" >> "$GITHUB_ENV"
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
+        if: steps.check_config.outputs.skip_mvr == 'false'
         working-directory: ./temp
         env:
           GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
