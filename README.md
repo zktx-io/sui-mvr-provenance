@@ -56,7 +56,7 @@ This config file will be used during deployment and provenance generation.
 | File               | Description                                                                 |
 | ------------------ | --------------------------------------------------------------------------- |
 | bytecode.dump.json | Base64-encoded compiled Move modules and dependencies.                      |
-| deploy.json        | Deployment result including package_id, upgrade_id, and tx metadata.        |
+| deploy.json        | Deployment result including upgrade_id, and tx metadata.                    |
 | mvr.config.json    | MVR deployment configuration used for provenance and metadata registration. |
 | mvr.intoto.jsonl   | SLSA-compatible provenance file proving verifiable deployment integrity.    |
 
@@ -66,7 +66,7 @@ These artifacts are reused across the provenance, verify, and mvr-register jobs 
 
 ```yaml
 - name: Build and Upload Move Bytecode
-  uses: zktx-io/sui-mvr-provenance@v0.0.31
+  uses: zktx-io/sui-mvr-provenance@v0.1.0
   with:
     working-directory: ./my-move-package
 ```
@@ -75,11 +75,11 @@ These artifacts are reused across the provenance, verify, and mvr-register jobs 
 
 This workflow registers the following three files as **metadata** in the **Move Registry (MVR)** during the deployment process:
 
-| File Name          | Description                                                                                                                        |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `deploy.json`      | Contains information about the deployed Move package, such as `package_id`, `upgrade_id`, `digest`, `modules`, and `dependencies`. |
-| `mvr.config.json`  | Defines deployment configuration, including `app_name`, `owner`, `network`, `upgrade_id`, etc.                                     |
-| `mvr.intoto.jsonl` | A **provenance file** generated via SLSA & Sigstore to verify the integrity and authenticity of the above files.                   |
+| File Name          | Description                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `deploy.json`      | Contains information about the deployed Move package, such as `upgrade_id`, and `digest`.                        |
+| `mvr.config.json`  | Defines deployment configuration, including `app_name`, `owner`, `network`, `upgrade_id`, etc.                   |
+| `mvr.intoto.jsonl` | A **provenance file** generated via SLSA & Sigstore to verify the integrity and authenticity of the above files. |
 
 This metadata is stored in MVR to enable:
 

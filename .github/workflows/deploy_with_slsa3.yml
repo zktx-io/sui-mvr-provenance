@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.31
+      - uses: zktx-io/sui-mvr-provenance@v0.1.0
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.31
+          ref: v0.1.0
           path: temp
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
@@ -77,7 +77,7 @@ jobs:
       - id: encode
         run: |
           HASHES=""
-          for FILE in deploy.json; do
+          for FILE in bytecode.dump.json; do
             if [ ! -f "$FILE" ]; then
               echo "::error::❌ $FILE not found"
               exit 1
@@ -106,10 +106,10 @@ jobs:
           name: mvr.intoto.jsonl
           path: .
 
-      - name: Download deploy.json artifacts
+      - name: Download bytecode.dump.json artifacts
         uses: actions/download-artifact@v4
         with:
-          name: deploy.json
+          name: bytecode.dump.json
           path: .
 
       - name: Install slsa-verifier
@@ -120,7 +120,7 @@ jobs:
 
       - name: Verify all provenance files
         run: |
-          for FILE in deploy.json; do
+          for FILE in bytecode.dump.json; do
             echo "🔍 Verifying $FILE..."
             slsa-verifier verify-artifact "$FILE" \
               --provenance-path mvr.intoto.jsonl \
@@ -182,7 +182,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.31
+          ref: v0.1.0
           path: temp
 
       - name: Set Git metadata as environment variables
@@ -193,7 +193,7 @@ jobs:
           echo "GIT_SUBDIR=${{ inputs.working-directory }}" >> "$GITHUB_ENV"
           echo "GIT_COMMIT=${{ github.sha }}" >> "$GITHUB_ENV"
 
-      - name: Run deploy.js from zktx-io/sui-mvr-provenance
+      - name: Run register.js from zktx-io/sui-mvr-provenance
         if: steps.check_config.outputs.skip_mvr == 'false'
         working-directory: ./temp
         env:

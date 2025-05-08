@@ -22,7 +22,5 @@ export interface BytecodeDump {
 
 export interface Deploy {
   digest: string;
-  modules: string[];
-  dependencies: string[];
   upgrade_cap: string;
 }

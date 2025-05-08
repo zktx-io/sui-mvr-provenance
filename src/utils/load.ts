@@ -3,6 +3,7 @@ import path from 'path';
 
 import * as core from '@actions/core';
 import { SuiClient } from '@mysten/sui/client';
+import { toBase64 } from '@mysten/sui/utils';
 
 import { BytecodeDump, Deploy, MvrConfig } from './type';
 
@@ -24,10 +25,10 @@ export const loadDeploy = async (): Promise<Deploy> => {
   return JSON.parse(dumpRaw) as Deploy;
 };
 
-export const loadProvenance = async (): Promise<Deploy> => {
+export const loadProvenance = async (): Promise<string> => {
   const dumpPath = path.resolve('../mvr.intoto.jsonl');
   const dumpRaw = await fs.readFile(dumpPath, 'utf-8');
-  return JSON.parse(dumpRaw) as Deploy;
+  return toBase64(new TextEncoder().encode(dumpRaw));
 };
 
 export const loadUpgradeCap = async (

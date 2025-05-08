@@ -1,6 +1,15 @@
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 
-import { Deploy, MvrConfig } from './type';
+import { MvrConfig } from './type';
+
+const splitBase64IntoChunks = (base64: string, chunkCount: number) => {
+  const chunkSize = Math.ceil(base64.length / chunkCount);
+  const chunks = [];
+  for (let i = 0; i < chunkCount; i++) {
+    chunks.push(base64.slice(i * chunkSize, (i + 1) * chunkSize));
+  }
+  return chunks;
+};
 
 const setMetaData = (
   target: string,
@@ -47,9 +56,10 @@ export const setAllMetadata = (
         type?: 'object';
       },
   config: MvrConfig,
-  deploy: Deploy,
-  provenance: any,
+  tx_digest: string,
+  provenance: string,
 ): ((tx: Transaction) => TransactionResult) => {
+  const chunk = splitBase64IntoChunks(provenance, 2);
   const keys: [string, string][] = [
     ['description', config.app_desc],
     ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -59,8 +69,9 @@ export const setAllMetadata = (
     ],
     ['icon_url', config.icon_url || ''],
     ['contact', config.contact || ''],
-    // ['deploy', JSON.stringify(deploy)],
-    // ['provenance', JSON.stringify(provenance)],
+    ['tx_digest', tx_digest],
+    ['provenance_0', chunk[0]],
+    ['provenance_1', chunk[1]],
   ];
 
   return (transaction: Transaction) => {

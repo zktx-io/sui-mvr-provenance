@@ -88,13 +88,13 @@ const main = async () => {
       }
     });
 
-    const deploy: Deploy = {
-      digest: txDigest,
-      modules,
-      dependencies,
-      upgrade_cap: upgrade_cap!,
-    };
-    await fs.writeFile(path.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
+    await fs.writeFile(
+      path.join(process.cwd(), '../deploy.json'),
+      JSON.stringify({
+        digest: txDigest,
+        upgrade_cap: upgrade_cap!,
+      }),
+    );
 
     if (isGitSigner) {
       const message = new TextEncoder().encode(
