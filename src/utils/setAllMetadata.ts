@@ -59,7 +59,7 @@ export const setAllMetadata = (
   tx_digest: string,
   provenance: string,
 ): ((tx: Transaction) => TransactionResult) => {
-  const chunk = splitBase64IntoChunks(provenance, 2);
+  const chunk = splitBase64IntoChunks(provenance, 4);
   const keys: [string, string][] = [
     ['description', config.app_desc],
     ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -72,6 +72,8 @@ export const setAllMetadata = (
     ['tx_digest', tx_digest],
     ['provenance_0', chunk[0]],
     ['provenance_1', chunk[1]],
+    ['provenance_0', chunk[2]],
+    ['provenance_1', chunk[3]],
   ];
 
   return (transaction: Transaction) => {
