@@ -19,23 +19,35 @@ The `working-directory` must include a `mvr.config.json` file to define deployme
 {
   "network": "mainnet",
   "owner": "0x123...abc",
-  "package_name": "@myname/app",
-  "package_desc": "My App Description",
-  "upgrade_cap": "0xabc...def"
+  "app_name": "@myname/app",
+  "app_desc": "My App Description",
+  "upgrade_cap": "0xabc...def",
+  "app_cap": "0xappcap...123",
+  "pkg_info": "0xpackageinfo...456",
+  "icon_url": "https://example.com/icon.png",
+  "homepage_url": "https://myapp.site",
+  "documentation_url": "https://docs.myapp.site",
+  "contact": "team@myapp.site"
 }
 ```
 
 - `network` _(string)_: The Sui network to deploy to. One of "mainnet", "testnet", or "devnet".
 - `owner` _(string)_: The address used to deploy the package. Must be authorized to sign.
-- `package_name` _(string)_: MVR package name in @name/app format. Required for MVR registration.
-- `package_desc` _(string)_: Short description of the package (e.g., "My token standard"). Required for MVR registration.
+- `app_name` _(string)_: MVR package name in @name/app format. Required for MVR registration.
+- `app_desc` _(string)_: Short description of the package (e.g., "My token standard"). Required for MVR registration.
 - `upgrade_cap` _(string, optional)_: If present, triggers an upgrade instead of a fresh deploy.
+- `app_cap` _(string, optional)_: Previously created AppCap object ID, used when skipping initial registration.
+- `pkg_info` _(string, optional)_: PackageInfo object ID, used during upgrades to update metadata.
+- `icon_url` _(string, optional)_: URL pointing to your app’s icon.
+- `homepage_url` _(string, optional)_: Official site or landing page.
+- `documentation_url` _(string, optional)_: Link to API or developer docs.
+- `contact` _(string, optional)_: Email or support contact.
 
 This config file will be used during deployment and provenance generation.
 
 ## 🔧 Behavior
 
-- If either `package_name` or `package_desc` is missing, deployment proceeds but MVR registration is skipped.
+- If either `app_name` or `app_desc` is missing, deployment proceeds but MVR registration is skipped.
 - If upgrade_cap is provided, it automatically resolves the package_id using the chain state.
 - The config file must exist at ${{ inputs.working-directory }}/mvr.config.json.
 
@@ -54,7 +66,7 @@ These artifacts are reused across the provenance, verify, and mvr-register jobs 
 
 ```yaml
 - name: Build and Upload Move Bytecode
-  uses: zktx-io/sui-mvr-provenance@v0.0.25
+  uses: zktx-io/sui-mvr-provenance@v0.0.26
   with:
     working-directory: ./my-move-package
 ```
@@ -66,7 +78,7 @@ This workflow registers the following three files as **metadata** in the **Move 
 | File Name          | Description                                                                                                                        |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `deploy.json`      | Contains information about the deployed Move package, such as `package_id`, `upgrade_id`, `digest`, `modules`, and `dependencies`. |
-| `mvr.config.json`  | Defines deployment configuration, including `package_name`, `owner`, `network`, `upgrade_id`, etc.                                 |
+| `mvr.config.json`  | Defines deployment configuration, including `app_name`, `owner`, `network`, `upgrade_id`, etc.                                     |
 | `mvr.intoto.jsonl` | A **provenance file** generated via SLSA & Sigstore to verify the integrity and authenticity of the above files.                   |
 
 This metadata is stored in MVR to enable:
@@ -75,4 +87,4 @@ This metadata is stored in MVR to enable:
 - 🔁 Separate management of the same named packages across **mainnet and testnet**
 - 🔎 Support for **named references** like `@suins/appName::module::function`
 
-> 💡 If `package_name` is not provided, MVR registration is skipped. The name must follow the format `@suinsName/appName` (e.g., `@mvr/counter`).
+> 💡 If `app_name` is not provided, MVR registration is skipped. The name must follow the format `@suinsName/appName` (e.g., `@mvr/counter`).

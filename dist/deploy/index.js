@@ -57349,22 +57349,7 @@ const main = async () => {
     const transaction = new transactions_1.Transaction();
     transaction.setSender(config.owner);
     if (config.upgrade_cap) {
-        const { data } = await client.getObject({
-            id: config.upgrade_cap,
-            options: { showContent: true, showType: true },
-        });
-        if (!data ||
-            data.type !== '0x2::package::UpgradeCap' ||
-            data.content?.dataType !== 'moveObject') {
-            core.setFailed(`❌ Upgrade cap not found: ${config.upgrade_cap}`);
-            process.exit(1);
-        }
-        const fields = data.content.fields;
-        if (!fields.package) {
-            core.setFailed(`❌ 'package' field not found in UpgradeCap`);
-            process.exit(1);
-        }
-        const packageId = fields.package;
+        const { package: packageId } = await (0, load_1.loadUpgradeCap)(config.upgrade_cap, client);
         const cap = transaction.object(config.upgrade_cap);
         const ticket = transaction.moveCall({
             target: '0x2::package::authorize_upgrade',
@@ -57405,20 +57390,18 @@ const main = async () => {
         options: { showEffects: true },
     });
     if (!txEffect || txEffect.status.status !== 'success') {
-        core.setFailed(`❌ Transaction failed: ${txDigest}`);
-        core.setFailed(`❌ ${txEffect ? txEffect.status.error : 'Unknown error'}`);
+        core.setFailed(`❌ Transaction failed: ${txDigest} - ${txEffect?.status.error ?? 'Unknown error'}`);
         process.exit(1);
     }
     else {
         let upgrade_cap = config.upgrade_cap;
-        core.info(`✅ Transaction executed successfully: ${txDigest}`);
         txEffect.created.forEach(obj => {
             if (obj.owner === 'Immutable') {
-                core.info(`✅ Package ID: ${obj.reference.objectId}`);
+                core.info(`✅ Package Obj: ${obj.reference.objectId}`);
             }
             else {
                 upgrade_cap = obj.reference.objectId;
-                core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
+                core.info(`✅ Upgrade Cap: ${obj.reference.objectId}`);
             }
         });
         const deploy = {
@@ -57432,6 +57415,7 @@ const main = async () => {
             const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
             await signer.signPersonalMessage(message, true);
         }
+        core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
     }
 };
 main().catch(err => {
@@ -57791,13 +57775,47 @@ exports.GitSigner = GitSigner;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
+exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(1943));
 const path_1 = __importDefault(__nccwpck_require__(6928));
+const core = __importStar(__nccwpck_require__(7484));
 const loadMvrConfig = async () => {
     const configPath = path_1.default.resolve('../mvr.config.json');
     const configRaw = await promises_1.default.readFile(configPath, 'utf-8');
@@ -57810,6 +57828,40 @@ const loadBytecodeDump = async () => {
     return JSON.parse(dumpRaw);
 };
 exports.loadBytecodeDump = loadBytecodeDump;
+const loadDeploy = async () => {
+    const dumpPath = path_1.default.resolve('../deploy.json');
+    const dumpRaw = await promises_1.default.readFile(dumpPath, 'utf-8');
+    return JSON.parse(dumpRaw);
+};
+exports.loadDeploy = loadDeploy;
+const loadProvenance = async () => {
+    const dumpPath = path_1.default.resolve('../mvr.intoto.jsonl');
+    const dumpRaw = await promises_1.default.readFile(dumpPath, 'utf-8');
+    return JSON.parse(dumpRaw);
+};
+exports.loadProvenance = loadProvenance;
+const loadUpgradeCap = async (id, client) => {
+    const { data } = await client.getObject({
+        id,
+        options: { showContent: true, showType: true },
+    });
+    if (!data ||
+        data.type !== '0x2::package::UpgradeCap' ||
+        data.content?.dataType !== 'moveObject') {
+        core.setFailed(`❌ Upgrade cap not found: ${id}`);
+        process.exit(1);
+    }
+    const fields = data.content.fields;
+    if (!fields.package) {
+        core.setFailed(`❌ 'package' field not found in UpgradeCap`);
+        process.exit(1);
+    }
+    return {
+        package: fields.package,
+        version: fields.version,
+    };
+};
+exports.loadUpgradeCap = loadUpgradeCap;
 
 
 /***/ }),

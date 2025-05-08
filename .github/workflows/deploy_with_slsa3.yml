@@ -23,7 +23,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.0.25
+      - uses: zktx-io/sui-mvr-provenance@v0.0.26
         with:
           working-directory: ${{ inputs.working-directory }}
 
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.0.25
+          ref: v0.0.26
           path: temp
 
       - name: Run deploy.js from zktx-io/sui-mvr-provenance
@@ -77,7 +77,7 @@ jobs:
       - id: encode
         run: |
           HASHES=""
-          for FILE in deploy.json mvr.config.json; do
+          for FILE in deploy.json; do
             if [ ! -f "$FILE" ]; then
               echo "::error::❌ $FILE not found"
               exit 1
@@ -112,12 +112,6 @@ jobs:
           name: deploy.json
           path: .
 
-      - name: Download mvr.meta.config artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: mvr.config.json
-          path: .
-
       - name: Install slsa-verifier
         run: |
           curl -sSfL https://github.com/slsa-framework/slsa-verifier/releases/latest/download/slsa-verifier-linux-amd64 -o slsa-verifier
@@ -126,7 +120,7 @@ jobs:
 
       - name: Verify all provenance files
         run: |
-          for FILE in deploy.json mvr.config.json; do
+          for FILE in deploy.json; do
             echo "🔍 Verifying $FILE..."
             slsa-verifier verify-artifact "$FILE" \
               --provenance-path mvr.intoto.jsonl \
@@ -136,3 +130,76 @@ jobs:
                 exit 1
               }
           done
+
+  mvr:
+    needs: [deploy, provenance, verify]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download mvr.meta.config artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mvr.config.json
+          path: .
+
+      - name: Check for valid app_name and app_desc in mvr.config.json
+        run: |
+          PACKAGE_NAME=$(jq -r '.app_name // empty' mvr.config.json)
+          PACKAGE_DESC=$(jq -r '.app_desc // empty' mvr.config.json)
+
+          if [[ -z "$PACKAGE_NAME" ]]; then
+            echo "::warning::⚠️ 'app_name' is missing in mvr.config.json. Skipping MVR registration."
+            exit 0
+          fi
+
+          if [[ ! "$PACKAGE_NAME" =~ ^@[^/]+\/[^/]+$ ]]; then
+            echo "::warning::⚠️ 'app_name' must be in the format '@suinsName/appName' (e.g. @mvr/app). Skipping MVR registration."
+            exit 0
+          fi
+
+          if [[ -z "$PACKAGE_DESC" ]]; then
+            echo "::warning::⚠️ 'app_desc' is missing. Skipping MVR registration."
+            exit 0
+          fi
+
+      - name: Download provenance file
+        uses: actions/download-artifact@v4
+        with:
+          name: mvr.intoto.jsonl
+          path: .
+
+      - name: Download deploy.json artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy.json
+          path: .
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: zktx-io/sui-mvr-provenance
+          ref: v0.0.26
+          path: temp
+
+      - name: Set Git metadata as environment variables
+        id: set_git_metadata
+        run: |
+          echo "GIT_REPO=https://github.com/${{ github.repository }}" >> "$GITHUB_ENV"
+          echo "GIT_SUBDIR=${{ inputs.working-directory }}" >> "$GITHUB_ENV"
+          echo "GIT_COMMIT=${{ github.sha }}" >> "$GITHUB_ENV"
+
+      - name: Run deploy.js from zktx-io/sui-mvr-provenance
+        working-directory: ./temp
+        env:
+          GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
+          ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
+          GIT_REPO: ${{ env.GIT_REPO }}
+          GIT_SUBDIR: ${{ env.GIT_SUBDIR }}
+          GIT_COMMIT: ${{ env.GIT_COMMIT }}
+        run: |
+          npm ci
+          node dist/register

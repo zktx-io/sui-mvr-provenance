@@ -7,7 +7,7 @@ import { Transaction, UpgradePolicy } from '@mysten/sui/transactions';
 
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
-import { loadBytecodeDump, loadMvrConfig } from './utils/load';
+import { loadBytecodeDump, loadMvrConfig, loadUpgradeCap } from './utils/load';
 import { Deploy } from './utils/type';
 
 const main = async () => {
@@ -31,29 +31,7 @@ const main = async () => {
   transaction.setSender(config.owner);
 
   if (config.upgrade_cap) {
-    const { data } = await client.getObject({
-      id: config.upgrade_cap,
-      options: { showContent: true, showType: true },
-    });
-
-    if (
-      !data ||
-      data.type !== '0x2::package::UpgradeCap' ||
-      data.content?.dataType !== 'moveObject'
-    ) {
-      core.setFailed(`❌ Upgrade cap not found: ${config.upgrade_cap}`);
-      process.exit(1);
-    }
-
-    const fields = data.content.fields as { package: string };
-
-    if (!fields.package) {
-      core.setFailed(`❌ 'package' field not found in UpgradeCap`);
-      process.exit(1);
-    }
-
-    const packageId = fields.package;
-
+    const { package: packageId } = await loadUpgradeCap(config.upgrade_cap, client);
     const cap = transaction.object(config.upgrade_cap);
     const ticket = transaction.moveCall({
       target: '0x2::package::authorize_upgrade',
@@ -97,19 +75,19 @@ const main = async () => {
   });
 
   if (!txEffect || txEffect.status.status !== 'success') {
-    core.setFailed(`❌ Transaction failed: ${txDigest}`);
-    core.setFailed(`❌ ${txEffect ? txEffect.status.error : 'Unknown error'}`);
+    core.setFailed(
+      `❌ Transaction failed: ${txDigest} - ${txEffect?.status.error ?? 'Unknown error'}`,
+    );
     process.exit(1);
   } else {
     let upgrade_cap = config.upgrade_cap;
 
-    core.info(`✅ Transaction executed successfully: ${txDigest}`);
     txEffect.created!.forEach(obj => {
       if (obj.owner === 'Immutable') {
-        core.info(`✅ Package ID: ${obj.reference.objectId}`);
+        core.info(`✅ Package Obj: ${obj.reference.objectId}`);
       } else {
         upgrade_cap = obj.reference.objectId;
-        core.info(`✅ Upgrade ID: ${obj.reference.objectId}`);
+        core.info(`✅ Upgrade Cap: ${obj.reference.objectId}`);
       }
     });
 
@@ -127,6 +105,10 @@ const main = async () => {
       );
       await (signer as GitSigner).signPersonalMessage(message, true);
     }
+
+    core.info(
+      `✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`,
+    );
   }
 };
 
