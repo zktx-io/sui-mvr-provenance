@@ -50,16 +50,15 @@ export const setAllMetadata = (
   deploy: Deploy,
   provenance: any,
 ): ((tx: Transaction) => TransactionResult) => {
-  const keys: [string, string | undefined][] = [
+  const keys: [string, string][] = [
     ['description', config.app_desc],
-    ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || undefined)],
+    ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
     [
       'documentation_url',
-      config.documentation_url ??
-        (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : undefined),
+      config.documentation_url ?? (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : ''),
     ],
-    ['icon_url', config.icon_url],
-    ['contact', config.contact],
+    ['icon_url', config.icon_url || ''],
+    ['contact', config.contact || ''],
     // ['deploy', JSON.stringify(deploy)],
     // ['provenance', JSON.stringify(provenance)],
   ];
@@ -68,9 +67,7 @@ export const setAllMetadata = (
     let lastResult: TransactionResult | undefined;
 
     for (const [key, value] of keys) {
-      if (value) {
-        lastResult = transaction.add(setMetaData(metadataTarget, key, value, registry, appCap));
-      }
+      lastResult = transaction.add(setMetaData(metadataTarget, key, value, registry, appCap));
     }
 
     return lastResult!;
