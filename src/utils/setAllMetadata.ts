@@ -28,6 +28,7 @@ const setMetaData = (
         type?: 'object';
       },
 ): ((tx: Transaction) => TransactionResult) => {
+  console.log('debug', new TextEncoder().encode(value).length);
   return (transaction: Transaction) => {
     return transaction.moveCall({
       target,
@@ -59,7 +60,7 @@ export const setAllMetadata = (
   tx_digest: string,
   provenance: string,
 ): ((tx: Transaction) => TransactionResult) => {
-  const chunk = splitBase64IntoChunks(provenance, 4);
+  const chunk = splitBase64IntoChunks(provenance, 8);
   const keys: [string, string][] = [
     ['description', config.app_desc],
     ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -74,6 +75,10 @@ export const setAllMetadata = (
     ['provenance_1', chunk[1]],
     ['provenance_2', chunk[2]],
     ['provenance_3', chunk[3]],
+    ['provenance_4', chunk[4]],
+    ['provenance_5', chunk[5]],
+    ['provenance_6', chunk[6]],
+    ['provenance_7', chunk[7]],
   ];
 
   return (transaction: Transaction) => {

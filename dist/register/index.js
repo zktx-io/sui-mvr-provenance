@@ -62693,6 +62693,7 @@ const splitBase64IntoChunks = (base64, chunkCount) => {
     return chunks;
 };
 const setMetaData = (target, key, value, registryObj, appCap) => {
+    console.log('debug', new TextEncoder().encode(value).length);
     return (transaction) => {
         return transaction.moveCall({
             target,
@@ -62706,7 +62707,7 @@ const setMetaData = (target, key, value, registryObj, appCap) => {
     };
 };
 const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, provenance) => {
-    const chunk = splitBase64IntoChunks(provenance, 4);
+    const chunk = splitBase64IntoChunks(provenance, 8);
     const keys = [
         ['description', config.app_desc],
         ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -62721,6 +62722,10 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
         ['provenance_1', chunk[1]],
         ['provenance_2', chunk[2]],
         ['provenance_3', chunk[3]],
+        ['provenance_4', chunk[4]],
+        ['provenance_5', chunk[5]],
+        ['provenance_6', chunk[6]],
+        ['provenance_7', chunk[7]],
     ];
     return (transaction) => {
         let lastResult;
@@ -62762,6 +62767,10 @@ const unsetAllMetadata = (metadataTarget, registry, appCap) => {
         'provenance_1',
         'provenance_2',
         'provenance_3',
+        'provenance_4',
+        'provenance_5',
+        'provenance_6',
+        'provenance_7',
     ];
     return (transaction) => {
         let lastResult;
