@@ -3,11 +3,12 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { SuinsClient } from '@mysten/suins';
 
-import { addAllMetadata } from './utils/addAllMetadata';
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
 import { loadDeploy, loadMvrConfig, loadProvenance, loadUpgradeCap } from './utils/load';
 import { mvrResolver } from './utils/mvrResolver';
+import { setAllMetadata } from './utils/setAllMetadata';
+import { unsetAllMetadata } from './utils/unsetAllMetadata';
 
 const main = async () => {
   const config = await loadMvrConfig();
@@ -94,7 +95,7 @@ const main = async () => {
     });
 
     transaction.add(
-      addAllMetadata(
+      setAllMetadata(
         `${cache['@mvr/core']}::move_registry::set_metadata`,
         registry,
         appCap,
@@ -188,7 +189,11 @@ const main = async () => {
     const packageInfo = transaction.object(config.pkg_info);
 
     transaction.add(
-      addAllMetadata(
+      unsetAllMetadata(`${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap),
+    );
+
+    transaction.add(
+      setAllMetadata(
         `${cache['@mvr/core']}::move_registry::set_metadata`,
         registry,
         appCap,
