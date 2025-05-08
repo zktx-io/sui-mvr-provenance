@@ -6,6 +6,12 @@ export interface MvrConfig {
   app_name: string;
   app_desc: string;
   upgrade_cap?: string;
+  app_cap?: string;
+  pkg_info?: string;
+  icon_url?: string;
+  homepage_url?: string;
+  documentation_url?: string;
+  contact?: string;
 }
 
 export interface BytecodeDump {
