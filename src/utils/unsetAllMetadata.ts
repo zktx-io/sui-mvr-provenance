@@ -45,8 +45,8 @@ export const unsetAllMetadata = (
     'documentation_url',
     'icon_url',
     'contact',
-    'deploy',
-    'provenance',
+    // 'deploy',
+    // 'provenance',
   ];
 
   return (transaction: Transaction) => {

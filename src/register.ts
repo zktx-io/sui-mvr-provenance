@@ -252,6 +252,9 @@ const main = async () => {
       core.info(
         `✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`,
       );
+      core.info(
+        `✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`,
+      );
     }
   } else {
     core.info(`ℹ️ Detected existing MVR registration for ${config.app_name}`);
