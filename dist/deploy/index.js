@@ -57400,13 +57400,10 @@ const main = async () => {
                 upgrade_cap = obj.reference.objectId;
             }
         });
-        const deploy = {
+        await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify({
             digest: txDigest,
-            modules,
-            dependencies,
             upgrade_cap: upgrade_cap,
-        };
-        await promises_1.default.writeFile(path_1.default.join(process.cwd(), '../deploy.json'), JSON.stringify(deploy));
+        }));
         if (isGitSigner) {
             const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
             await signer.signPersonalMessage(message, true);
@@ -57814,6 +57811,7 @@ exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.l
 const promises_1 = __importDefault(__nccwpck_require__(1943));
 const path_1 = __importDefault(__nccwpck_require__(6928));
 const core = __importStar(__nccwpck_require__(7484));
+const utils_1 = __nccwpck_require__(3973);
 const loadMvrConfig = async () => {
     const configPath = path_1.default.resolve('../mvr.config.json');
     const configRaw = await promises_1.default.readFile(configPath, 'utf-8');
@@ -57835,7 +57833,7 @@ exports.loadDeploy = loadDeploy;
 const loadProvenance = async () => {
     const dumpPath = path_1.default.resolve('../mvr.intoto.jsonl');
     const dumpRaw = await promises_1.default.readFile(dumpPath, 'utf-8');
-    return JSON.parse(dumpRaw);
+    return (0, utils_1.toBase64)(new TextEncoder().encode(dumpRaw));
 };
 exports.loadProvenance = loadProvenance;
 const loadUpgradeCap = async (id, client) => {

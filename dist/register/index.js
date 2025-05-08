@@ -62064,7 +62064,7 @@ const main = async () => {
             target: `${cache['@mvr/core']}::move_registry::register`,
             arguments: [registry, nftId, transaction.pure.string(pkgName), transaction.object.clock()],
         });
-        transaction.add((0, setAllMetadata_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy, provenance));
+        transaction.add((0, setAllMetadata_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         const packageInfo = transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::new`,
             arguments: [transaction.object(deploy.upgrade_cap)],
@@ -62117,6 +62117,7 @@ const main = async () => {
                 await signer.signPersonalMessage(message, true);
             }
             core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
+            core.info(`✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`);
             core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
             core.info(`  "app_cap": "${appCap.objectId}",`);
             core.info(`  "pkg_info": "${pkgInfo.objectId}"`);
@@ -62129,7 +62130,7 @@ const main = async () => {
         const appCap = transaction.object(config.app_cap);
         const packageInfo = transaction.object(config.pkg_info);
         transaction.add((0, unsetAllMetadata_1.unsetAllMetadata)(`${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap));
-        transaction.add((0, setAllMetadata_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy, provenance));
+        transaction.add((0, setAllMetadata_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::unset_git_versioning`,
             arguments: [packageInfo, transaction.pure.u64(parseInt(version) - 1)],
@@ -62575,6 +62576,7 @@ exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.l
 const promises_1 = __importDefault(__nccwpck_require__(91943));
 const path_1 = __importDefault(__nccwpck_require__(16928));
 const core = __importStar(__nccwpck_require__(37484));
+const utils_1 = __nccwpck_require__(33973);
 const loadMvrConfig = async () => {
     const configPath = path_1.default.resolve('../mvr.config.json');
     const configRaw = await promises_1.default.readFile(configPath, 'utf-8');
@@ -62596,7 +62598,7 @@ exports.loadDeploy = loadDeploy;
 const loadProvenance = async () => {
     const dumpPath = path_1.default.resolve('../mvr.intoto.jsonl');
     const dumpRaw = await promises_1.default.readFile(dumpPath, 'utf-8');
-    return JSON.parse(dumpRaw);
+    return (0, utils_1.toBase64)(new TextEncoder().encode(dumpRaw));
 };
 exports.loadProvenance = loadProvenance;
 const loadUpgradeCap = async (id, client) => {
@@ -62682,6 +62684,14 @@ exports.mvrResolver = mvrResolver;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setAllMetadata = void 0;
+const splitBase64IntoChunks = (base64, chunkCount) => {
+    const chunkSize = Math.ceil(base64.length / chunkCount);
+    const chunks = [];
+    for (let i = 0; i < chunkCount; i++) {
+        chunks.push(base64.slice(i * chunkSize, (i + 1) * chunkSize));
+    }
+    return chunks;
+};
 const setMetaData = (target, key, value, registryObj, appCap) => {
     return (transaction) => {
         return transaction.moveCall({
@@ -62695,7 +62705,8 @@ const setMetaData = (target, key, value, registryObj, appCap) => {
         });
     };
 };
-const setAllMetadata = (metadataTarget, registry, appCap, config, deploy, provenance) => {
+const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, provenance) => {
+    const chunk = splitBase64IntoChunks(provenance, 2);
     const keys = [
         ['description', config.app_desc],
         ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -62705,8 +62716,9 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, deploy, proven
         ],
         ['icon_url', config.icon_url || ''],
         ['contact', config.contact || ''],
-        // ['deploy', JSON.stringify(deploy)],
-        // ['provenance', JSON.stringify(provenance)],
+        ['tx_digest', tx_digest],
+        ['provenance_0', chunk[0]],
+        ['provenance_1', chunk[1]],
     ];
     return (transaction) => {
         let lastResult;
@@ -62743,8 +62755,9 @@ const unsetAllMetadata = (metadataTarget, registry, appCap) => {
         'documentation_url',
         'icon_url',
         'contact',
-        // 'deploy',
-        // 'provenance',
+        'tx_digest',
+        'provenance_0',
+        'provenance_1',
     ];
     return (transaction) => {
         let lastResult;

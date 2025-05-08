@@ -100,7 +100,7 @@ const main = async () => {
         registry,
         appCap,
         config,
-        deploy,
+        deploy.digest,
         provenance,
       ),
     );
@@ -176,6 +176,9 @@ const main = async () => {
       core.info(
         `✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`,
       );
+      core.info(
+        `✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`,
+      );
       core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
       core.info(`  "app_cap": "${(appCap as any).objectId}",`);
       core.info(`  "pkg_info": "${(pkgInfo as any).objectId}"`);
@@ -198,7 +201,7 @@ const main = async () => {
         registry,
         appCap,
         config,
-        deploy,
+        deploy.digest,
         provenance,
       ),
     );
