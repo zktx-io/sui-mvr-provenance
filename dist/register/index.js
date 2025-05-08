@@ -62168,6 +62168,7 @@ const main = async () => {
                 await signer.signPersonalMessage(message, true);
             }
             core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
+            core.info(`✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`);
         }
     }
     else {
@@ -62697,23 +62698,20 @@ const setMetaData = (target, key, value, registryObj, appCap) => {
 const setAllMetadata = (metadataTarget, registry, appCap, config, deploy, provenance) => {
     const keys = [
         ['description', config.app_desc],
-        ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || undefined)],
+        ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
         [
             'documentation_url',
-            config.documentation_url ??
-                (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : undefined),
+            config.documentation_url ?? (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : ''),
         ],
-        ['icon_url', config.icon_url],
-        ['contact', config.contact],
+        ['icon_url', config.icon_url || ''],
+        ['contact', config.contact || ''],
         // ['deploy', JSON.stringify(deploy)],
         // ['provenance', JSON.stringify(provenance)],
     ];
     return (transaction) => {
         let lastResult;
         for (const [key, value] of keys) {
-            if (value) {
-                lastResult = transaction.add(setMetaData(metadataTarget, key, value, registry, appCap));
-            }
+            lastResult = transaction.add(setMetaData(metadataTarget, key, value, registry, appCap));
         }
         return lastResult;
     };
@@ -62745,8 +62743,8 @@ const unsetAllMetadata = (metadataTarget, registry, appCap) => {
         'documentation_url',
         'icon_url',
         'contact',
-        'deploy',
-        'provenance',
+        // 'deploy',
+        // 'provenance',
     ];
     return (transaction) => {
         let lastResult;
