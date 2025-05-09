@@ -6,9 +6,8 @@ import { SuinsClient } from '@mysten/suins';
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
 import { loadDeploy, loadMvrConfig, loadProvenance, loadUpgradeCap } from './utils/load';
+import { setAllMetadata, unsetAllMetadata } from './utils/mvrMetadatas';
 import { mvrResolver } from './utils/mvrResolver';
-import { setAllMetadata } from './utils/setAllMetadata';
-import { unsetAllMetadata } from './utils/unsetAllMetadata';
 
 const main = async () => {
   const config = await loadMvrConfig();

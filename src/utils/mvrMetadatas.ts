@@ -11,37 +11,6 @@ const splitBase64IntoChunks = (base64: string, chunkCount: number) => {
   return chunks;
 };
 
-const setMetaData = (
-  target: string,
-  key: string,
-  value: string,
-  registryObj: {
-    $kind: 'Input';
-    Input: number;
-    type?: 'object';
-  },
-  appCap:
-    | TransactionResult
-    | {
-        $kind: 'Input';
-        Input: number;
-        type?: 'object';
-      },
-): ((tx: Transaction) => TransactionResult) => {
-  console.log('debug', new TextEncoder().encode(value).length);
-  return (transaction: Transaction) => {
-    return transaction.moveCall({
-      target,
-      arguments: [
-        registryObj,
-        appCap,
-        transaction.pure.string(key),
-        transaction.pure.string(value),
-      ],
-    });
-  };
-};
-
 export const setAllMetadata = (
   metadataTarget: string,
   registry: {
@@ -59,8 +28,8 @@ export const setAllMetadata = (
   config: MvrConfig,
   tx_digest: string,
   provenance: string,
-): ((tx: Transaction) => TransactionResult) => {
-  const chunk = splitBase64IntoChunks(provenance, 8);
+): ((tx: Transaction) => void) => {
+  const chunks = splitBase64IntoChunks(provenance, 4);
   const keys: [string, string][] = [
     ['description', config.app_desc],
     ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -71,23 +40,56 @@ export const setAllMetadata = (
     ['icon_url', config.icon_url || ''],
     ['contact', config.contact || ''],
     ['tx_digest', tx_digest],
-    ['provenance_0', chunk[0]],
-    ['provenance_1', chunk[1]],
-    ['provenance_2', chunk[2]],
-    ['provenance_3', chunk[3]],
-    ['provenance_4', chunk[4]],
-    ['provenance_5', chunk[5]],
-    ['provenance_6', chunk[6]],
-    ['provenance_7', chunk[7]],
+    ['provenance_0', chunks[0]],
+    ['provenance_1', chunks[1]],
+    ['provenance_2', chunks[2]],
+    ['provenance_3', chunks[3]],
   ];
 
   return (transaction: Transaction) => {
-    let lastResult: TransactionResult | undefined;
-
     for (const [key, value] of keys) {
-      lastResult = transaction.add(setMetaData(metadataTarget, key, value, registry, appCap));
+      transaction.moveCall({
+        target: metadataTarget,
+        arguments: [registry, appCap, transaction.pure.string(key), transaction.pure.string(value)],
+      });
     }
+  };
+};
 
-    return lastResult!;
+export const unsetAllMetadata = (
+  metadataTarget: string,
+  registry: {
+    $kind: 'Input';
+    Input: number;
+    type?: 'object';
+  },
+  appCap:
+    | TransactionResult
+    | {
+        $kind: 'Input';
+        Input: number;
+        type?: 'object';
+      },
+): ((tx: Transaction) => void) => {
+  const keys: string[] = [
+    'description',
+    'homepage_url',
+    'documentation_url',
+    'icon_url',
+    'contact',
+    'tx_digest',
+    'provenance_0',
+    'provenance_1',
+    'provenance_2',
+    'provenance_3',
+  ];
+
+  return (transaction: Transaction) => {
+    for (const key of keys) {
+      transaction.moveCall({
+        target: metadataTarget,
+        arguments: [registry, appCap, transaction.pure.string(key)],
+      });
+    }
   };
 };
