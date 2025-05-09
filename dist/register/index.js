@@ -61999,9 +61999,8 @@ const transactions_1 = __nccwpck_require__(59417);
 const suins_1 = __nccwpck_require__(8154);
 const getSigner_1 = __nccwpck_require__(73207);
 const load_1 = __nccwpck_require__(23469);
+const mvrMetadatas_1 = __nccwpck_require__(41406);
 const mvrResolver_1 = __nccwpck_require__(19076);
-const setAllMetadata_1 = __nccwpck_require__(17479);
-const unsetAllMetadata_1 = __nccwpck_require__(83300);
 const main = async () => {
     const config = await (0, load_1.loadMvrConfig)();
     const provenance = await (0, load_1.loadProvenance)();
@@ -62064,7 +62063,7 @@ const main = async () => {
             target: `${cache['@mvr/core']}::move_registry::register`,
             arguments: [registry, nftId, transaction.pure.string(pkgName), transaction.object.clock()],
         });
-        transaction.add((0, setAllMetadata_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
+        transaction.add((0, mvrMetadatas_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         const packageInfo = transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::new`,
             arguments: [transaction.object(deploy.upgrade_cap)],
@@ -62129,8 +62128,8 @@ const main = async () => {
         const registry = transaction.object(registryObj.targetAddress);
         const appCap = transaction.object(config.app_cap);
         const packageInfo = transaction.object(config.pkg_info);
-        transaction.add((0, unsetAllMetadata_1.unsetAllMetadata)(`${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap));
-        transaction.add((0, setAllMetadata_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
+        transaction.add((0, mvrMetadatas_1.unsetAllMetadata)(`${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap));
+        transaction.add((0, mvrMetadatas_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::unset_git_versioning`,
             arguments: [packageInfo, transaction.pure.u64(parseInt(version) - 1)],
@@ -62627,6 +62626,75 @@ exports.loadUpgradeCap = loadUpgradeCap;
 
 /***/ }),
 
+/***/ 41406:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.unsetAllMetadata = exports.setAllMetadata = void 0;
+const splitBase64IntoChunks = (base64, chunkCount) => {
+    const chunkSize = Math.ceil(base64.length / chunkCount);
+    const chunks = [];
+    for (let i = 0; i < chunkCount; i++) {
+        chunks.push(base64.slice(i * chunkSize, (i + 1) * chunkSize));
+    }
+    return chunks;
+};
+const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, provenance) => {
+    const chunks = splitBase64IntoChunks(provenance, 4);
+    const keys = [
+        ['description', config.app_desc],
+        ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
+        [
+            'documentation_url',
+            config.documentation_url ?? (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : ''),
+        ],
+        ['icon_url', config.icon_url || ''],
+        ['contact', config.contact || ''],
+        ['tx_digest', tx_digest],
+        ['provenance_0', chunks[0]],
+        ['provenance_1', chunks[1]],
+        ['provenance_2', chunks[2]],
+        ['provenance_3', chunks[3]],
+    ];
+    return (transaction) => {
+        for (const [key, value] of keys) {
+            transaction.moveCall({
+                target: metadataTarget,
+                arguments: [registry, appCap, transaction.pure.string(key), transaction.pure.string(value)],
+            });
+        }
+    };
+};
+exports.setAllMetadata = setAllMetadata;
+const unsetAllMetadata = (metadataTarget, registry, appCap) => {
+    const keys = [
+        'description',
+        'homepage_url',
+        'documentation_url',
+        'icon_url',
+        'contact',
+        'tx_digest',
+        'provenance_0',
+        'provenance_1',
+        'provenance_2',
+        'provenance_3',
+    ];
+    return (transaction) => {
+        for (const key of keys) {
+            transaction.moveCall({
+                target: metadataTarget,
+                arguments: [registry, appCap, transaction.pure.string(key)],
+            });
+        }
+    };
+};
+exports.unsetAllMetadata = unsetAllMetadata;
+
+
+/***/ }),
+
 /***/ 19076:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -62673,114 +62741,6 @@ const mvrResolver = async (packages, network) => {
     return results;
 };
 exports.mvrResolver = mvrResolver;
-
-
-/***/ }),
-
-/***/ 17479:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setAllMetadata = void 0;
-const splitBase64IntoChunks = (base64, chunkCount) => {
-    const chunkSize = Math.ceil(base64.length / chunkCount);
-    const chunks = [];
-    for (let i = 0; i < chunkCount; i++) {
-        chunks.push(base64.slice(i * chunkSize, (i + 1) * chunkSize));
-    }
-    return chunks;
-};
-const setMetaData = (target, key, value, registryObj, appCap) => {
-    console.log('debug', new TextEncoder().encode(value).length);
-    return (transaction) => {
-        return transaction.moveCall({
-            target,
-            arguments: [
-                registryObj,
-                appCap,
-                transaction.pure.string(key),
-                transaction.pure.string(value),
-            ],
-        });
-    };
-};
-const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, provenance) => {
-    const chunk = splitBase64IntoChunks(provenance, 8);
-    const keys = [
-        ['description', config.app_desc],
-        ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
-        [
-            'documentation_url',
-            config.documentation_url ?? (process.env.GIT_REPO ? `${process.env.GIT_REPO}#readme` : ''),
-        ],
-        ['icon_url', config.icon_url || ''],
-        ['contact', config.contact || ''],
-        ['tx_digest', tx_digest],
-        ['provenance_0', chunk[0]],
-        ['provenance_1', chunk[1]],
-        ['provenance_2', chunk[2]],
-        ['provenance_3', chunk[3]],
-        ['provenance_4', chunk[4]],
-        ['provenance_5', chunk[5]],
-        ['provenance_6', chunk[6]],
-        ['provenance_7', chunk[7]],
-    ];
-    return (transaction) => {
-        let lastResult;
-        for (const [key, value] of keys) {
-            lastResult = transaction.add(setMetaData(metadataTarget, key, value, registry, appCap));
-        }
-        return lastResult;
-    };
-};
-exports.setAllMetadata = setAllMetadata;
-
-
-/***/ }),
-
-/***/ 83300:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.unsetAllMetadata = void 0;
-const unsetMetaData = (target, key, registryObj, appCap) => {
-    return (transaction) => {
-        return transaction.moveCall({
-            target,
-            arguments: [registryObj, appCap, transaction.pure.string(key)],
-        });
-    };
-};
-const unsetAllMetadata = (metadataTarget, registry, appCap) => {
-    const keys = [
-        'description',
-        'homepage_url',
-        'documentation_url',
-        'icon_url',
-        'contact',
-        'tx_digest',
-        'provenance_0',
-        'provenance_1',
-        'provenance_2',
-        'provenance_3',
-        'provenance_4',
-        'provenance_5',
-        'provenance_6',
-        'provenance_7',
-    ];
-    return (transaction) => {
-        let lastResult;
-        for (const key of keys) {
-            lastResult = transaction.add(unsetMetaData(metadataTarget, key, registry, appCap));
-        }
-        return lastResult;
-    };
-};
-exports.unsetAllMetadata = unsetAllMetadata;
 
 
 /***/ }),
