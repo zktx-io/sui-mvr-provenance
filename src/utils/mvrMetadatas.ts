@@ -1,3 +1,4 @@
+import * as core from '@actions/core';
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 
 import { MvrConfig } from './type';
@@ -48,6 +49,7 @@ export const setAllMetadata = (
 
   return (transaction: Transaction) => {
     for (const [key, value] of keys) {
+      core.info(`debug: ${key} size - ${value.length}`);
       transaction.moveCall({
         target: metadataTarget,
         arguments: [registry, appCap, transaction.pure.string(key), transaction.pure.string(value)],
