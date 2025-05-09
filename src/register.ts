@@ -266,6 +266,6 @@ const main = async () => {
 };
 
 main().catch(err => {
-  core.setFailed(`❌ Error running deploy script: ${err}`);
+  core.setFailed(`❌ ${err}`);
   process.exit(1);
 });
