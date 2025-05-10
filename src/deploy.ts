@@ -8,6 +8,7 @@ import { Transaction, UpgradePolicy } from '@mysten/sui/transactions';
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
 import { loadBytecodeDump, loadMvrConfig, loadUpgradeCap } from './utils/load';
+import { mvrResolver } from './utils/mvrResolver';
 
 const main = async () => {
   const config = await loadMvrConfig();
@@ -31,6 +32,17 @@ const main = async () => {
 
   if (config.upgrade_cap) {
     const { package: packageId } = await loadUpgradeCap(config.upgrade_cap, client);
+
+    if (config.network === 'mainnet') {
+      const cache = await mvrResolver([config.app_name], config.network);
+      if (cache[config.app_name] !== packageId) {
+        core.setFailed(
+          `❌ Upgrade cap does not match registered package ID for "${config.app_name}".`,
+        );
+        process.exit(1);
+      }
+    }
+
     const cap = transaction.object(config.upgrade_cap);
     const ticket = transaction.moveCall({
       target: '0x2::package::authorize_upgrade',
@@ -51,6 +63,13 @@ const main = async () => {
       arguments: [cap, upgrade],
     });
   } else {
+    if (config.network === 'mainnet') {
+      const cache = await mvrResolver([config.app_name], config.network);
+      if (cache[config.app_name]) {
+        core.setFailed(`❌ Package ${config.app_name} already exists.`);
+        process.exit(1);
+      }
+    }
     const publish = transaction.publish({
       modules,
       dependencies,
