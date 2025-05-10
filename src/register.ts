@@ -3,7 +3,6 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { SuinsClient } from '@mysten/suins';
 
-import { getGasBudget } from './utils/getGasBudget';
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
 import { loadDeploy, loadMvrConfig, loadProvenance, loadUpgradeCap } from './utils/load';
@@ -140,8 +139,10 @@ const main = async () => {
 
     transaction.transferObjects([appCap], recipient);
 
-    const budget = await getGasBudget(transaction, client);
-    transaction.setGasBudget(budget);
+    const { input } = await client.dryRunTransactionBlock({
+      transactionBlock: await transaction.build({ client }),
+    });
+    transaction.setGasBudget(parseInt(input.gasData.budget));
 
     const { digest: txDigest } = await client.signAndExecuteTransaction({
       signer,
@@ -223,8 +224,10 @@ const main = async () => {
       arguments: [packageInfo, transaction.pure.u64(version), git],
     });
 
-    const budget = await getGasBudget(transaction, client);
-    transaction.setGasBudget(budget);
+    const { input } = await client.dryRunTransactionBlock({
+      transactionBlock: await transaction.build({ client }),
+    });
+    transaction.setGasBudget(parseInt(input.gasData.budget));
 
     const { digest: txDigest } = await client.signAndExecuteTransaction({
       signer,
