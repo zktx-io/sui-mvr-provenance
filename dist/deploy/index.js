@@ -57332,7 +57332,6 @@ const path_1 = __importDefault(__nccwpck_require__(6928));
 const core = __importStar(__nccwpck_require__(7484));
 const client_1 = __nccwpck_require__(827);
 const transactions_1 = __nccwpck_require__(9417);
-const getGasBudget_1 = __nccwpck_require__(9349);
 const getSigner_1 = __nccwpck_require__(3207);
 const load_1 = __nccwpck_require__(3469);
 const main = async () => {
@@ -57378,8 +57377,10 @@ const main = async () => {
         });
         transaction.transferObjects([publish], config.owner);
     }
-    const budget = await (0, getGasBudget_1.getGasBudget)(transaction, client);
-    transaction.setGasBudget(budget);
+    const { input } = await client.dryRunTransactionBlock({
+        transactionBlock: await transaction.build({ client }),
+    });
+    transaction.setGasBudget(parseInt(input.gasData.budget));
     const { digest: txDigest } = await client.signAndExecuteTransaction({
         signer,
         transaction,
@@ -57416,27 +57417,6 @@ main().catch(err => {
     core.setFailed(`❌ Error running deploy script: ${err}`);
     process.exit(1);
 });
-
-
-/***/ }),
-
-/***/ 9349:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGasBudget = void 0;
-const transactions_1 = __nccwpck_require__(9417);
-const getGasBudget = async (tx, client) => {
-    const txJson = await tx.toJSON();
-    const clone = transactions_1.Transaction.from(txJson);
-    const { input } = await client.dryRunTransactionBlock({
-        transactionBlock: await clone.build({ client }),
-    });
-    return parseInt(input.gasData.budget);
-};
-exports.getGasBudget = getGasBudget;
 
 
 /***/ }),
@@ -57557,6 +57537,7 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitSigner = exports.sleep = void 0;
 const crypto_1 = __nccwpck_require__(6982);
@@ -57653,7 +57634,7 @@ class GitSigner extends cryptography_1.Keypair {
         return {
             ephemeralAddress,
             secretKey: ephemeralKeypair.getSecretKey(),
-            signer: new GitSigner({
+            signer: new _a({
                 network,
                 realAddress: address,
                 ephemeralKeypair,
@@ -57695,14 +57676,24 @@ class GitSigner extends cryptography_1.Keypair {
             return false;
         }
     }
+    static #splitUint8Array(input, chunkSize = 16380) {
+        const chunks = [];
+        for (let i = 0; i < input.length; i += chunkSize) {
+            chunks.push(input.slice(i, i + chunkSize));
+        }
+        return chunks;
+    }
     async #sendRequest(payload, isEnd) {
         const encrypted = await encryptBytes(new TextEncoder().encode(JSON.stringify(payload)), this.#pin);
+        const chunks = _a.#splitUint8Array((0, utils_1.fromBase64)(encrypted));
         const ephemeralAddress = this.#ephemeralKeypair.getPublicKey().toSuiAddress();
         const tx = new transactions_1.Transaction();
         tx.setSender(ephemeralAddress);
         tx.setGasBudget(10000000);
         tx.pure.bool(true);
-        tx.pure.vector('u8', (0, utils_1.fromBase64)(encrypted));
+        chunks.forEach(chunk => {
+            tx.pure.vector('u8', chunk);
+        });
         tx.transferObjects([tx.gas], ephemeralAddress);
         const { digest: request } = await this.#client.signAndExecuteTransaction({
             transaction: tx,
@@ -57781,6 +57772,7 @@ class GitSigner extends cryptography_1.Keypair {
     }
 }
 exports.GitSigner = GitSigner;
+_a = GitSigner;
 
 
 /***/ }),
