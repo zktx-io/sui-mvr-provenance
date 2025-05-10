@@ -16,7 +16,7 @@ import { Transaction } from '@mysten/sui/transactions';
 import { fromBase64, toBase64 } from '@mysten/sui/utils';
 import { verifyPersonalMessageSignature, verifyTransactionSignature } from '@mysten/sui/verify';
 
-import { Network } from './type';
+import { Network } from '../types';
 
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

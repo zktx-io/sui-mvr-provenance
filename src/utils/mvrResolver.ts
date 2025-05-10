@@ -1,5 +1,5 @@
 // @mysten/mvr-static
-import { Network } from './type';
+import { Network } from '../types';
 
 const MAX_BATCH_SIZE = 25; // files to process per batch.
 const MAINNET_API_URL = 'https://mainnet.mvr.mystenlabs.com';

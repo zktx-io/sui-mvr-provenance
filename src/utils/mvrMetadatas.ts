@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 
-import { MvrConfig } from './type';
+import { MvrConfig } from '../types';
 
 const splitBase64IntoChunks = (base64: string, chunkCount: number) => {
   const chunkSize = Math.ceil(base64.length / chunkCount);
