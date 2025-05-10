@@ -93,6 +93,8 @@ const main = async () => {
       arguments: [registry, nftId, transaction.pure.string(pkgName), transaction.object.clock()],
     });
 
+    core.info(`debug: pkgName size - ${pkgName.length}`); // TODO: remove this line
+
     transaction.add(
       setAllMetadata(
         `${cache['@mvr/core']}::move_registry::set_metadata`,
@@ -117,6 +119,10 @@ const main = async () => {
         transaction.pure.string(process.env.GIT_COMMIT ?? ''),
       ],
     });
+
+    core.info(`debug: GIT_REPO size - ${(process.env.GIT_REPO ?? '').length}`); // TODO: remove this line
+    core.info(`debug: GIT_SUBDIR size - ${(process.env.GIT_SUBDIR ?? '').length}`); // TODO: remove this line
+    core.info(`debug: GIT_COMMIT size - ${(process.env.GIT_COMMIT ?? '').length}`); // TODO: remove this line
 
     transaction.moveCall({
       target: `${cache['@mvr/metadata']}::package_info::set_git_versioning`,
@@ -144,6 +150,7 @@ const main = async () => {
     });
     transaction.setGasBudget(parseInt(input.gasData.budget));
 
+    /*
     const { digest: txDigest } = await client.signAndExecuteTransaction({
       signer,
       transaction,
@@ -182,6 +189,7 @@ const main = async () => {
       core.info(`  "app_cap": "${(appCap as any).objectId}",`);
       core.info(`  "pkg_info": "${(pkgInfo as any).objectId}"`);
     }
+      */
   } else if (!!config.app_cap && !!config.pkg_info) {
     const transaction = new Transaction();
     transaction.setSender(config.owner);
