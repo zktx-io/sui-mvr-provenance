@@ -5,6 +5,7 @@ import * as core from '@actions/core';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { Transaction, UpgradePolicy } from '@mysten/sui/transactions';
 
+import { getGasBudget } from './utils/getGasBudget';
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
 import { loadBytecodeDump, loadMvrConfig, loadUpgradeCap } from './utils/load';
@@ -59,10 +60,8 @@ const main = async () => {
     transaction.transferObjects([publish], config.owner);
   }
 
-  const { input } = await client.dryRunTransactionBlock({
-    transactionBlock: await transaction.build({ client }),
-  });
-  transaction.setGasBudget(parseInt(input.gasData.budget));
+  const budget = await getGasBudget(transaction, client);
+  transaction.setGasBudget(budget);
 
   const { digest: txDigest } = await client.signAndExecuteTransaction({
     signer,
