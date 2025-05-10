@@ -2,8 +2,9 @@ import * as core from '@actions/core';
 import { Keypair } from '@mysten/sui/cryptography';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
+import { MvrConfig } from '../types';
+
 import { GitSigner } from './gitSigner';
-import { MvrConfig } from './type';
 
 export const getSigner = async (
   config: MvrConfig,

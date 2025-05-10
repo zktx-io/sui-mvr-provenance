@@ -5,7 +5,7 @@ import * as core from '@actions/core';
 import { SuiClient } from '@mysten/sui/client';
 import { toBase64 } from '@mysten/sui/utils';
 
-import { BytecodeDump, Deploy, MvrConfig } from './type';
+import { BytecodeDump, Deploy, MvrConfig } from '../types';
 
 export const loadMvrConfig = async (): Promise<MvrConfig> => {
   const configPath = path.resolve('../mvr.config.json');
