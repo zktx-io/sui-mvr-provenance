@@ -61997,6 +61997,7 @@ const core = __importStar(__nccwpck_require__(37484));
 const client_1 = __nccwpck_require__(70827);
 const transactions_1 = __nccwpck_require__(59417);
 const suins_1 = __nccwpck_require__(8154);
+const getGasBudget_1 = __nccwpck_require__(29349);
 const getSigner_1 = __nccwpck_require__(73207);
 const load_1 = __nccwpck_require__(23469);
 const mvrMetadatas_1 = __nccwpck_require__(41406);
@@ -62063,7 +62064,6 @@ const main = async () => {
             target: `${cache['@mvr/core']}::move_registry::register`,
             arguments: [registry, nftId, transaction.pure.string(pkgName), transaction.object.clock()],
         });
-        core.info(`debug: pkgName size - ${pkgName.length}`); // TODO: remove this line
         transaction.add((0, mvrMetadatas_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         const packageInfo = transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::new`,
@@ -62077,9 +62077,6 @@ const main = async () => {
                 transaction.pure.string(process.env.GIT_COMMIT ?? ''),
             ],
         });
-        core.info(`debug: GIT_REPO size - ${(process.env.GIT_REPO ?? '').length}`); // TODO: remove this line
-        core.info(`debug: GIT_SUBDIR size - ${(process.env.GIT_SUBDIR ?? '').length}`); // TODO: remove this line
-        core.info(`debug: GIT_COMMIT size - ${(process.env.GIT_COMMIT ?? '').length}`); // TODO: remove this line
         transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::set_git_versioning`,
             arguments: [packageInfo, transaction.pure.u64(version), git],
@@ -62096,50 +62093,33 @@ const main = async () => {
             arguments: [packageInfo, recipient],
         });
         transaction.transferObjects([appCap], recipient);
-        const { input } = await client.dryRunTransactionBlock({
-            transactionBlock: await transaction.build({ client }),
-        });
-        transaction.setGasBudget(parseInt(input.gasData.budget));
-        /*
+        const budget = await (0, getGasBudget_1.getGasBudget)(transaction, client);
+        transaction.setGasBudget(budget);
         const { digest: txDigest } = await client.signAndExecuteTransaction({
-          signer,
-          transaction,
+            signer,
+            transaction,
         });
-    
         const { effects: txEffect, objectChanges } = await client.waitForTransaction({
-          digest: txDigest,
-          options: { showEffects: true, showObjectChanges: true },
+            digest: txDigest,
+            options: { showEffects: true, showObjectChanges: true },
         });
-    
         if (!txEffect || txEffect.status.status !== 'success') {
-          core.setFailed(
-            `❌ Transaction failed: ${txDigest} - ${txEffect?.status.error ?? 'Unknown error'}`,
-          );
-          process.exit(1);
-        } else {
-          const [appCap] = (objectChanges || []).filter(
-            item => item.type === 'created' && item.objectType.endsWith('::app_record::AppCap'),
-          );
-          const [pkgInfo] = (objectChanges || []).filter(
-            item => item.type === 'created' && item.objectType.endsWith('::package_info::PackageInfo'),
-          );
-          if (isGitSigner) {
-            const message = new TextEncoder().encode(
-              JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }),
-            );
-            await (signer as GitSigner).signPersonalMessage(message, true);
-          }
-          core.info(
-            `✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`,
-          );
-          core.info(
-            `✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`,
-          );
-          core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
-          core.info(`  "app_cap": "${(appCap as any).objectId}",`);
-          core.info(`  "pkg_info": "${(pkgInfo as any).objectId}"`);
+            core.setFailed(`❌ Transaction failed: ${txDigest} - ${txEffect?.status.error ?? 'Unknown error'}`);
+            process.exit(1);
         }
-          */
+        else {
+            const [appCap] = (objectChanges || []).filter(item => item.type === 'created' && item.objectType.endsWith('::app_record::AppCap'));
+            const [pkgInfo] = (objectChanges || []).filter(item => item.type === 'created' && item.objectType.endsWith('::package_info::PackageInfo'));
+            if (isGitSigner) {
+                const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
+                await signer.signPersonalMessage(message, true);
+            }
+            core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
+            core.info(`✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`);
+            core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
+            core.info(`  "app_cap": "${appCap.objectId}",`);
+            core.info(`  "pkg_info": "${pkgInfo.objectId}"`);
+        }
     }
     else if (!!config.app_cap && !!config.pkg_info) {
         const transaction = new transactions_1.Transaction();
@@ -62165,10 +62145,8 @@ const main = async () => {
             target: `${cache['@mvr/metadata']}::package_info::set_git_versioning`,
             arguments: [packageInfo, transaction.pure.u64(version), git],
         });
-        const { input } = await client.dryRunTransactionBlock({
-            transactionBlock: await transaction.build({ client }),
-        });
-        transaction.setGasBudget(parseInt(input.gasData.budget));
+        const budget = await (0, getGasBudget_1.getGasBudget)(transaction, client);
+        transaction.setGasBudget(budget);
         const { digest: txDigest } = await client.signAndExecuteTransaction({
             signer,
             transaction,
@@ -62200,6 +62178,27 @@ main().catch(err => {
     core.setFailed(`❌ ${err}`);
     process.exit(1);
 });
+
+
+/***/ }),
+
+/***/ 29349:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getGasBudget = void 0;
+const transactions_1 = __nccwpck_require__(59417);
+const getGasBudget = async (tx, client) => {
+    const txJson = await tx.toJSON();
+    const clone = transactions_1.Transaction.from(txJson);
+    const { input } = await client.dryRunTransactionBlock({
+        transactionBlock: await clone.build({ client }),
+    });
+    return parseInt(input.gasData.budget);
+};
+exports.getGasBudget = getGasBudget;
 
 
 /***/ }),
@@ -62646,46 +62645,12 @@ exports.loadUpgradeCap = loadUpgradeCap;
 /***/ }),
 
 /***/ 41406:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.unsetAllMetadata = exports.setAllMetadata = void 0;
-const core = __importStar(__nccwpck_require__(37484));
 const splitBase64IntoChunks = (base64, chunkCount) => {
     const chunkSize = Math.ceil(base64.length / chunkCount);
     const chunks = [];
@@ -62713,7 +62678,6 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
     ];
     return (transaction) => {
         for (const [key, value] of keys) {
-            core.info(`debug: ${key} size - ${value.length}`); // TODO: remove this line
             transaction.moveCall({
                 target: metadataTarget,
                 arguments: [registry, appCap, transaction.pure.string(key), transaction.pure.string(value)],

@@ -3,6 +3,7 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { SuinsClient } from '@mysten/suins';
 
+import { getGasBudget } from './utils/getGasBudget';
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
 import { loadDeploy, loadMvrConfig, loadProvenance, loadUpgradeCap } from './utils/load';
@@ -93,8 +94,6 @@ const main = async () => {
       arguments: [registry, nftId, transaction.pure.string(pkgName), transaction.object.clock()],
     });
 
-    core.info(`debug: pkgName size - ${pkgName.length}`); // TODO: remove this line
-
     transaction.add(
       setAllMetadata(
         `${cache['@mvr/core']}::move_registry::set_metadata`,
@@ -120,10 +119,6 @@ const main = async () => {
       ],
     });
 
-    core.info(`debug: GIT_REPO size - ${(process.env.GIT_REPO ?? '').length}`); // TODO: remove this line
-    core.info(`debug: GIT_SUBDIR size - ${(process.env.GIT_SUBDIR ?? '').length}`); // TODO: remove this line
-    core.info(`debug: GIT_COMMIT size - ${(process.env.GIT_COMMIT ?? '').length}`); // TODO: remove this line
-
     transaction.moveCall({
       target: `${cache['@mvr/metadata']}::package_info::set_git_versioning`,
       arguments: [packageInfo, transaction.pure.u64(version), git],
@@ -145,12 +140,9 @@ const main = async () => {
 
     transaction.transferObjects([appCap], recipient);
 
-    const { input } = await client.dryRunTransactionBlock({
-      transactionBlock: await transaction.build({ client }),
-    });
-    transaction.setGasBudget(parseInt(input.gasData.budget));
+    const budget = await getGasBudget(transaction, client);
+    transaction.setGasBudget(budget);
 
-    /*
     const { digest: txDigest } = await client.signAndExecuteTransaction({
       signer,
       transaction,
@@ -189,7 +181,6 @@ const main = async () => {
       core.info(`  "app_cap": "${(appCap as any).objectId}",`);
       core.info(`  "pkg_info": "${(pkgInfo as any).objectId}"`);
     }
-      */
   } else if (!!config.app_cap && !!config.pkg_info) {
     const transaction = new Transaction();
     transaction.setSender(config.owner);
@@ -232,10 +223,8 @@ const main = async () => {
       arguments: [packageInfo, transaction.pure.u64(version), git],
     });
 
-    const { input } = await client.dryRunTransactionBlock({
-      transactionBlock: await transaction.build({ client }),
-    });
-    transaction.setGasBudget(parseInt(input.gasData.budget));
+    const budget = await getGasBudget(transaction, client);
+    transaction.setGasBudget(budget);
 
     const { digest: txDigest } = await client.signAndExecuteTransaction({
       signer,

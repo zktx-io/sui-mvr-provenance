@@ -49,7 +49,6 @@ export const setAllMetadata = (
 
   return (transaction: Transaction) => {
     for (const [key, value] of keys) {
-      core.info(`debug: ${key} size - ${value.length}`); // TODO: remove this line
       transaction.moveCall({
         target: metadataTarget,
         arguments: [registry, appCap, transaction.pure.string(key), transaction.pure.string(value)],
