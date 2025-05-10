@@ -57334,6 +57334,7 @@ const client_1 = __nccwpck_require__(827);
 const transactions_1 = __nccwpck_require__(9417);
 const getSigner_1 = __nccwpck_require__(3207);
 const load_1 = __nccwpck_require__(3469);
+const mvrResolver_1 = __nccwpck_require__(9076);
 const main = async () => {
     const config = await (0, load_1.loadMvrConfig)();
     const dump = await (0, load_1.loadBytecodeDump)();
@@ -57350,6 +57351,13 @@ const main = async () => {
     transaction.setSender(config.owner);
     if (config.upgrade_cap) {
         const { package: packageId } = await (0, load_1.loadUpgradeCap)(config.upgrade_cap, client);
+        if (config.network === 'mainnet') {
+            const cache = await (0, mvrResolver_1.mvrResolver)([config.app_name], config.network);
+            if (cache[config.app_name] !== packageId) {
+                core.setFailed(`❌ Upgrade cap does not match registered package ID for "${config.app_name}".`);
+                process.exit(1);
+            }
+        }
         const cap = transaction.object(config.upgrade_cap);
         const ticket = transaction.moveCall({
             target: '0x2::package::authorize_upgrade',
@@ -57371,6 +57379,13 @@ const main = async () => {
         });
     }
     else {
+        if (config.network === 'mainnet') {
+            const cache = await (0, mvrResolver_1.mvrResolver)([config.app_name], config.network);
+            if (cache[config.app_name]) {
+                core.setFailed(`❌ Package ${config.app_name} already exists.`);
+                process.exit(1);
+            }
+        }
         const publish = transaction.publish({
             modules,
             dependencies,
@@ -57870,6 +57885,56 @@ const loadUpgradeCap = async (id, client) => {
     };
 };
 exports.loadUpgradeCap = loadUpgradeCap;
+
+
+/***/ }),
+
+/***/ 9076:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.mvrResolver = void 0;
+const MAX_BATCH_SIZE = 25; // files to process per batch.
+const MAINNET_API_URL = 'https://mainnet.mvr.mystenlabs.com';
+const TESTNET_API_URL = 'https://testnet.mvr.mystenlabs.com';
+const batch = (array, batchSize = MAX_BATCH_SIZE) => {
+    const result = [];
+    for (let i = 0; i < array.length; i += batchSize) {
+        result.push(array.slice(i, i + batchSize)); // Create batches
+    }
+    return result;
+};
+const mvrResolver = async (packages, network) => {
+    const batches = batch(packages, 50);
+    const results = {};
+    const apiUrl = network === 'testnet' ? TESTNET_API_URL : MAINNET_API_URL;
+    await Promise.all(batches.map(async (batch) => {
+        const response = await fetch(`${apiUrl}/v1/resolution/bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                names: batch,
+            }),
+        });
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            throw new Error(`Failed to resolve packages: ${errorBody?.message}`);
+        }
+        const data = await response.json();
+        if (!data?.resolution)
+            return;
+        for (const pkg of Object.keys(data?.resolution)) {
+            const pkgData = data.resolution[pkg]?.package_id;
+            if (!pkgData)
+                continue;
+            results[pkg] = pkgData;
+        }
+    }));
+    return results;
+};
+exports.mvrResolver = mvrResolver;
 
 
 /***/ }),
