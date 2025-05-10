@@ -62063,6 +62063,7 @@ const main = async () => {
             target: `${cache['@mvr/core']}::move_registry::register`,
             arguments: [registry, nftId, transaction.pure.string(pkgName), transaction.object.clock()],
         });
+        core.info(`debug: pkgName size - ${pkgName.length}`); // TODO: remove this line
         transaction.add((0, mvrMetadatas_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         const packageInfo = transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::new`,
@@ -62076,6 +62077,9 @@ const main = async () => {
                 transaction.pure.string(process.env.GIT_COMMIT ?? ''),
             ],
         });
+        core.info(`debug: GIT_REPO size - ${(process.env.GIT_REPO ?? '').length}`); // TODO: remove this line
+        core.info(`debug: GIT_SUBDIR size - ${(process.env.GIT_SUBDIR ?? '').length}`); // TODO: remove this line
+        core.info(`debug: GIT_COMMIT size - ${(process.env.GIT_COMMIT ?? '').length}`); // TODO: remove this line
         transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::set_git_versioning`,
             arguments: [packageInfo, transaction.pure.u64(version), git],
@@ -62096,31 +62100,46 @@ const main = async () => {
             transactionBlock: await transaction.build({ client }),
         });
         transaction.setGasBudget(parseInt(input.gasData.budget));
+        /*
         const { digest: txDigest } = await client.signAndExecuteTransaction({
-            signer,
-            transaction,
+          signer,
+          transaction,
         });
+    
         const { effects: txEffect, objectChanges } = await client.waitForTransaction({
-            digest: txDigest,
-            options: { showEffects: true, showObjectChanges: true },
+          digest: txDigest,
+          options: { showEffects: true, showObjectChanges: true },
         });
+    
         if (!txEffect || txEffect.status.status !== 'success') {
-            core.setFailed(`❌ Transaction failed: ${txDigest} - ${txEffect?.status.error ?? 'Unknown error'}`);
-            process.exit(1);
+          core.setFailed(
+            `❌ Transaction failed: ${txDigest} - ${txEffect?.status.error ?? 'Unknown error'}`,
+          );
+          process.exit(1);
+        } else {
+          const [appCap] = (objectChanges || []).filter(
+            item => item.type === 'created' && item.objectType.endsWith('::app_record::AppCap'),
+          );
+          const [pkgInfo] = (objectChanges || []).filter(
+            item => item.type === 'created' && item.objectType.endsWith('::package_info::PackageInfo'),
+          );
+          if (isGitSigner) {
+            const message = new TextEncoder().encode(
+              JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }),
+            );
+            await (signer as GitSigner).signPersonalMessage(message, true);
+          }
+          core.info(
+            `✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`,
+          );
+          core.info(
+            `✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`,
+          );
+          core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
+          core.info(`  "app_cap": "${(appCap as any).objectId}",`);
+          core.info(`  "pkg_info": "${(pkgInfo as any).objectId}"`);
         }
-        else {
-            const [appCap] = (objectChanges || []).filter(item => item.type === 'created' && item.objectType.endsWith('::app_record::AppCap'));
-            const [pkgInfo] = (objectChanges || []).filter(item => item.type === 'created' && item.objectType.endsWith('::package_info::PackageInfo'));
-            if (isGitSigner) {
-                const message = new TextEncoder().encode(JSON.stringify({ url: `https://suiscan.xyz/${config.network}/tx/${txDigest}` }));
-                await signer.signPersonalMessage(message, true);
-            }
-            core.info(`✅ Transaction executed successfully: https://suiscan.xyz/${config.network}/tx/${txDigest}`);
-            core.info(`✅ Package registered on MVR: https://www.moveregistry.com/package/${config.app_name}`);
-            core.info(`⚠️ To update metadata later, please add the following to your mvr.config.json:`);
-            core.info(`  "app_cap": "${appCap.objectId}",`);
-            core.info(`  "pkg_info": "${pkgInfo.objectId}"`);
-        }
+          */
     }
     else if (!!config.app_cap && !!config.pkg_info) {
         const transaction = new transactions_1.Transaction();
@@ -62694,7 +62713,7 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
     ];
     return (transaction) => {
         for (const [key, value] of keys) {
-            core.info(`debug: ${key} size - ${value.length}`);
+            core.info(`debug: ${key} size - ${value.length}`); // TODO: remove this line
             transaction.moveCall({
                 target: metadataTarget,
                 arguments: [registry, appCap, transaction.pure.string(key), transaction.pure.string(value)],
