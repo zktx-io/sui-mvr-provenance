@@ -191,7 +191,13 @@ const main = async () => {
     const packageInfo = transaction.object(config.pkg_info);
 
     transaction.add(
-      unsetAllMetadata(`${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap),
+      await unsetAllMetadata(
+        config.network,
+        config.app_name,
+        `${cache['@mvr/core']}::move_registry::unset_metadata`,
+        registry,
+        appCap,
+      ),
     );
 
     transaction.add(

@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 
-import { MvrConfig } from '../types';
+import { MvrConfig, Network } from '../types';
 
 const splitBase64IntoChunks = (base64: string, chunkCount: number) => {
   const chunkSize = Math.ceil(base64.length / chunkCount);
@@ -57,7 +57,9 @@ export const setAllMetadata = (
   };
 };
 
-export const unsetAllMetadata = (
+export const unsetAllMetadata = async (
+  network: Network,
+  name: string,
   metadataTarget: string,
   registry: {
     $kind: 'Input';
@@ -71,19 +73,12 @@ export const unsetAllMetadata = (
         Input: number;
         type?: 'object';
       },
-): ((tx: Transaction) => void) => {
-  const keys: string[] = [
-    'description',
-    'homepage_url',
-    'documentation_url',
-    'icon_url',
-    'contact',
-    'tx_digest',
-    'provenance_0',
-    'provenance_1',
-    'provenance_2',
-    'provenance_3',
-  ];
+): Promise<(tx: Transaction) => void> => {
+  const response = await fetch(`https://${network}.mvr.mystenlabs.com/v1/names/${name}`, {
+    method: 'GET',
+  });
+  const json = await response.json();
+  const keys: string[] = Object.keys(json.metadata);
 
   return (transaction: Transaction) => {
     for (const key of keys) {
