@@ -1,14 +1,17 @@
-import * as core from '@actions/core';
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 
 import { MvrConfig, Network } from '../types';
 
-const splitBase64IntoChunks = (base64: string, chunkCount: number) => {
-  const chunkSize = Math.ceil(base64.length / chunkCount);
-  const chunks = [];
-  for (let i = 0; i < chunkCount; i++) {
-    chunks.push(base64.slice(i * chunkSize, (i + 1) * chunkSize));
+const splitBase64ByByteLength = (base64: string, maxBytes: number): string[] => {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(base64);
+  const chunks: string[] = [];
+
+  for (let i = 0; i < bytes.length; i += maxBytes) {
+    const slice = bytes.slice(i, i + maxBytes);
+    chunks.push(new TextDecoder().decode(slice));
   }
+
   return chunks;
 };
 
@@ -30,7 +33,7 @@ export const setAllMetadata = (
   tx_digest: string,
   provenance: string,
 ): ((tx: Transaction) => void) => {
-  const chunks = splitBase64IntoChunks(provenance, 4);
+  const chunks = splitBase64ByByteLength(provenance, 16380);
   const keys: [string, string][] = [
     ['description', config.app_desc],
     ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -41,10 +44,7 @@ export const setAllMetadata = (
     ['icon_url', config.icon_url || ''],
     ['contact', config.contact || ''],
     ['tx_digest', tx_digest],
-    ['provenance_0', chunks[0]],
-    ['provenance_1', chunks[1]],
-    ['provenance_2', chunks[2]],
-    ['provenance_3', chunks[3]],
+    ...chunks.map((chunk, i): [string, string] => [`provenance_${i}`, chunk]),
   ];
 
   return (transaction: Transaction) => {
