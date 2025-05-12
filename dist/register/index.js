@@ -62128,7 +62128,7 @@ const main = async () => {
         const registry = transaction.object(registryObj.targetAddress);
         const appCap = transaction.object(config.app_cap);
         const packageInfo = transaction.object(config.pkg_info);
-        transaction.add((0, mvrMetadatas_1.unsetAllMetadata)(`${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap));
+        transaction.add(await (0, mvrMetadatas_1.unsetAllMetadata)(config.network, config.app_name, `${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap));
         transaction.add((0, mvrMetadatas_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
         transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::unset_git_versioning`,
@@ -62645,16 +62645,18 @@ exports.loadUpgradeCap = loadUpgradeCap;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.unsetAllMetadata = exports.setAllMetadata = void 0;
-const splitBase64IntoChunks = (base64, chunkCount) => {
-    const chunkSize = Math.ceil(base64.length / chunkCount);
+const splitBase64ByByteLength = (base64, maxBytes) => {
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(base64);
     const chunks = [];
-    for (let i = 0; i < chunkCount; i++) {
-        chunks.push(base64.slice(i * chunkSize, (i + 1) * chunkSize));
+    for (let i = 0; i < bytes.length; i += maxBytes) {
+        const slice = bytes.slice(i, i + maxBytes);
+        chunks.push(new TextDecoder().decode(slice));
     }
     return chunks;
 };
 const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, provenance) => {
-    const chunks = splitBase64IntoChunks(provenance, 4);
+    const chunks = splitBase64ByByteLength(provenance, 16380);
     const keys = [
         ['description', config.app_desc],
         ['homepage_url', config.homepage_url ?? (process.env.GIT_REPO || '')],
@@ -62665,10 +62667,7 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
         ['icon_url', config.icon_url || ''],
         ['contact', config.contact || ''],
         ['tx_digest', tx_digest],
-        ['provenance_0', chunks[0]],
-        ['provenance_1', chunks[1]],
-        ['provenance_2', chunks[2]],
-        ['provenance_3', chunks[3]],
+        ...chunks.map((chunk, i) => [`provenance_${i}`, chunk]),
     ];
     return (transaction) => {
         for (const [key, value] of keys) {
@@ -62680,19 +62679,12 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
     };
 };
 exports.setAllMetadata = setAllMetadata;
-const unsetAllMetadata = (metadataTarget, registry, appCap) => {
-    const keys = [
-        'description',
-        'homepage_url',
-        'documentation_url',
-        'icon_url',
-        'contact',
-        'tx_digest',
-        'provenance_0',
-        'provenance_1',
-        'provenance_2',
-        'provenance_3',
-    ];
+const unsetAllMetadata = async (network, name, metadataTarget, registry, appCap) => {
+    const response = await fetch(`https://${network}.mvr.mystenlabs.com/v1/names/${name}`, {
+        method: 'GET',
+    });
+    const json = await response.json();
+    const keys = Object.keys(json.metadata);
     return (transaction) => {
         for (const key of keys) {
             transaction.moveCall({
