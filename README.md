@@ -1,19 +1,42 @@
 # 🚀 Sui MVR Provenance
 
-# Build and Upload Move Bytecode
+> **V now stands for _Verifiability_** — not just a registry, but a **trust layer** for Move packages.
+> With provenance support powered by CI/CD, this project transforms the Move Registry into something you can **verify**, not just use.
 
-This GitHub Action builds a Move package using the Sui CLI and uploads the resulting `bytecode.dump.json` as an artifact.  
-Useful for generating provenance data or integrating with MVR and downstream deployment workflows.
+### 🔍 What is this?
 
-## 📥 Inputs
+This GitHub Action builds a Move package using the Sui CLI, generates provenance metadata, and registers it in the [Move Registry (MVR)](https://www.moveregistry.com/).
 
-| Name                | Description                                                   | Required | Default |
-| ------------------- | ------------------------------------------------------------- | -------- | ------- |
-| `working-directory` | Path to the Move project directory (must contain `Move.toml`) | ✅ Yes   | `.`     |
+Every deployment includes:
 
-## 📄 Required: `mvr.config.json`
+- A compiled `bytecode.dump.json`
+- An `intoto.jsonl` SLSA provenance bundle
+- Metadata registration to MVR via `mvr.config.json`
 
-The `working-directory` must include a `mvr.config.json` file to define deployment metadata for MVR.
+### ⚙️ Quick Start
+
+```yaml
+- name: Build and Upload Move Smart Contract
+  uses: zktx-io/sui-mvr-provenance@v0.2.0
+  with:
+    working-directory: my-move-package
+  env:
+    ED25519_PRIVATE_KEY: ${{ secrets.ED25519_PRIVATE_KEY }}
+    GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }} # optional
+```
+
+> ⚠️ The `mvr.config.json` file must exist in your working directory.
+
+### 🔐 Environment Variables
+
+| Variable              | Required | Description                                                                          |
+| --------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `ED25519_PRIVATE_KEY` | ✅       | Default signing key in Sui format (`suiprivkey...`)                                  |
+| `GIT_SIGNER_PIN`      | optional | Enables secure remote signing via [notary.wal.app/sign](https://notary.wal.app/sign) |
+
+### 📄 Required: `mvr.config.json`
+
+Located in your working directory, this file defines how the package is deployed and registered:
 
 ```json
 {
@@ -31,60 +54,59 @@ The `working-directory` must include a `mvr.config.json` file to define deployme
 }
 ```
 
-- `network` _(string)_: The Sui network to deploy to. One of "mainnet", "testnet", or "devnet".
-- `owner` _(string)_: The address used to deploy the package. Must be authorized to sign.
-- `app_name` _(string)_: MVR package name in @name/app format. Required for MVR registration.
-- `app_desc` _(string)_: Short description of the package (e.g., "My token standard"). Required for MVR registration.
-- `upgrade_cap` _(string, optional)_: If present, triggers an upgrade instead of a fresh deploy.
-- `app_cap` _(string, optional)_: Previously created AppCap object ID, used when skipping initial registration.
-- `pkg_info` _(string, optional)_: PackageInfo object ID, used during upgrades to update metadata.
-- `icon_url` _(string, optional)_: URL pointing to your app’s icon.
-- `homepage_url` _(string, optional)_: Official site or landing page.
-- `documentation_url` _(string, optional)_: Link to API or developer docs.
-- `contact` _(string, optional)_: Email or support contact.
+### 🩹 Field Reference
 
-This config file will be used during deployment and provenance generation.
+| Field               | Type   | Required | Description                             |
+| ------------------- | ------ | -------- | --------------------------------------- |
+| `network`           | string | ✅       | `"mainnet"`, `"testnet"`, or `"devnet"` |
+| `owner`             | string | ✅       | Sui address that will own the package   |
+| `app_name`          | string | ✅       | MVR name in `@name/app` format          |
+| `app_desc`          | string | ✅       | Short description for MVR               |
+| `upgrade_cap`       | string | optional | Object ID to upgrade existing package   |
+| `app_cap`           | string | optional | AppCap object ID for registration       |
+| `pkg_info`          | string | optional | PackageInfo object ID                   |
+| `icon_url`          | string | optional | Icon displayed in registry UI           |
+| `homepage_url`      | string | optional | Official app/site URL                   |
+| `documentation_url` | string | optional | Docs URL                                |
+| `contact`           | string | optional | Email or support contact                |
 
-## 🔧 Behavior
+> ℹ️ If `app_name` or `app_desc` is missing, MVR registration will be skipped.
 
-- If either `app_name` or `app_desc` is missing, deployment proceeds but MVR registration is skipped.
-- If upgrade_cap is provided, it automatically resolves the package_id using the chain state.
-- The config file must exist at ${{ inputs.working-directory }}/mvr.config.json.
+### 📄 Output Artifacts
 
-## 📤 Output
+| File                 | Description                                             |
+| -------------------- | ------------------------------------------------------- |
+| `bytecode.dump.json` | Compiled base64-encoded Move bytecode                   |
+| `deploy.json`        | Deployment result with `package_id`, `upgrade_id`, etc. |
+| `mvr.config.json`    | Configuration used for registration                     |
+| `mvr.intoto.jsonl`   | SLSA-compatible provenance file                         |
 
-| File               | Description                                                                 |
-| ------------------ | --------------------------------------------------------------------------- |
-| bytecode.dump.json | Base64-encoded compiled Move modules and dependencies.                      |
-| deploy.json        | Deployment result including upgrade_id, and tx metadata.                    |
-| mvr.config.json    | MVR deployment configuration used for provenance and metadata registration. |
-| mvr.intoto.jsonl   | SLSA-compatible provenance file proving verifiable deployment integrity.    |
+### 📆 MVR Metadata Registration
 
-These artifacts are reused across the provenance, verify, and mvr-register jobs for full end-to-end verification and Move Registry integration.
+The following items are registered to the Move Registry (MVR) as metadata:
 
-## 🛠 Example
+- `mvr.intoto.jsonl` — SLSA-compatible provenance file
+- Deployment transaction digest — the on-chain reference for the published package
 
-```yaml
-- name: Build and Upload Move Bytecode
-  uses: zktx-io/sui-mvr-provenance@v0.2.0
-  with:
-    working-directory: ./my-move-package
-```
+This enables:
 
-## 📦 MVR Metadata Registration
+- ✅ Verifiable origin of Move packages
 
-This workflow registers the following three files as **metadata** in the **Move Registry (MVR)** during the deployment process:
+### 📂 Advanced Usage
 
-| File Name          | Description                                                                                                      |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `deploy.json`      | Contains information about the deployed Move package, such as `upgrade_id`, and `digest`.                        |
-| `mvr.config.json`  | Defines deployment configuration, including `app_name`, `owner`, `network`, `upgrade_id`, etc.                   |
-| `mvr.intoto.jsonl` | A **provenance file** generated via SLSA & Sigstore to verify the integrity and authenticity of the above files. |
+- Combine with GitHub OIDC + GitSigner for secure key separation
+- Use `upgrade_cap` to automate upgrades across environments
+- Integrate with your CI/CD via `upload-artifact` / `download-artifact`
 
-This metadata is stored in MVR to enable:
+### 📁 GitHub
 
-- ✅ Verifiable **origin and integrity** of Move packages
-- 🔁 Separate management of the same named packages across **mainnet and testnet**
-- 🔎 Support for **named references** like `@suins/appName::module::function`
+This repository includes:
 
-> 💡 If `app_name` is not provided, MVR registration is skipped. The name must follow the format `@suinsName/appName` (e.g., `@mvr/counter`).
+- 🧩 **Move package**: [`hello_world`](https://github.com/zktx-io/sui-mvr-example/tree/main/hello_world)
+- ⚙️ **GitHub Actions workflow**: [`.github/workflows/deploy.yml`](https://github.com/zktx-io/sui-mvr-example/blob/main/.github/workflows/deploy.yml)
+- 📝 **Provenance config**: [`mvr.config.json`](https://github.com/zktx-io/sui-mvr-example/blob/main/hello_world/mvr.config.json)
+
+### 🧱 Based on the Sui Move Intro Course
+
+This example is derived from the official [Sui Move Intro Course – Hello World](https://github.com/sui-foundation/sui-move-intro-course/tree/main/unit-one/example_projects/hello_world).
+It demonstrates how even a minimal Move module can be published and verified with full provenance.
