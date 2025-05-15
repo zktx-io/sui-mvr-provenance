@@ -23,11 +23,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: zktx-io/sui-mvr-provenance@v0.2.1
+      - uses: zktx-io/sui-mvr-provenance@v0.2.2
         with:
           working-directory: ${{ inputs.working-directory }}
 
-  deploy:
+  deploy-sign:
     runs-on: ubuntu-latest
     needs: build
     outputs:
@@ -55,10 +55,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.2.1
+          ref: v0.2.2
           path: temp
 
-      - name: Run deploy.js from zktx-io/sui-mvr-provenance
+      - name: Deploy to Sui
         working-directory: ./temp
         env:
           GIT_SIGNER_PIN: ${{ secrets.GIT_SIGNER_PIN }}
@@ -89,7 +89,7 @@ jobs:
           echo "base64_hashes=$(echo -n "$HASHES" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
   provenance:
-    needs: deploy
+    needs: deploy-sign
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: ${{ needs.deploy.outputs.base64_hashes }}
@@ -97,7 +97,7 @@ jobs:
       provenance-name: 'mvr.intoto.jsonl'
 
   verify:
-    needs: [deploy, provenance]
+    needs: [deploy-sign, provenance]
     runs-on: ubuntu-latest
     steps:
       - name: Download provenance file
@@ -131,8 +131,8 @@ jobs:
               }
           done
 
-  mvr:
-    needs: [deploy, provenance, verify]
+  mvr-sign:
+    needs: [deploy-sign, provenance, verify]
     runs-on: ubuntu-latest
     steps:
       - name: Download mvr.meta.config artifacts
@@ -182,7 +182,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: zktx-io/sui-mvr-provenance
-          ref: v0.2.1
+          ref: v0.2.2
           path: temp
 
       - name: Set Git metadata as environment variables
@@ -193,7 +193,7 @@ jobs:
           echo "GIT_SUBDIR=${{ inputs.working-directory }}" >> "$GITHUB_ENV"
           echo "GIT_COMMIT=${{ github.sha }}" >> "$GITHUB_ENV"
 
-      - name: Run register.js from zktx-io/sui-mvr-provenance
+      - name: Register to MVR
         if: steps.check_config.outputs.skip_mvr == 'false'
         working-directory: ./temp
         env:
