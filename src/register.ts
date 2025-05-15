@@ -5,7 +5,13 @@ import { SuinsClient } from '@mysten/suins';
 
 import { getSigner } from './utils/getSigner';
 import { GitSigner } from './utils/gitSigner';
-import { loadDeploy, loadMvrConfig, loadProvenance, loadUpgradeCap } from './utils/load';
+import {
+  loadDeploy,
+  loadGitVersion,
+  loadMvrConfig,
+  loadProvenance,
+  loadUpgradeCap,
+} from './utils/load';
 import { setAllMetadata, unsetAllMetadata } from './utils/mvrMetadatas';
 import { mvrResolver } from './utils/mvrResolver';
 
@@ -211,9 +217,11 @@ const main = async () => {
       ),
     );
 
+    const gitVersion = await loadGitVersion(config.pkg_info, version, client);
+
     transaction.moveCall({
       target: `${cache['@mvr/metadata']}::package_info::unset_git_versioning`,
-      arguments: [packageInfo, transaction.pure.u64(parseInt(version) - 1)],
+      arguments: [packageInfo, transaction.pure.u64(gitVersion)],
     });
 
     const git = transaction.moveCall({

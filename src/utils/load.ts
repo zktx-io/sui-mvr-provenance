@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 import * as core from '@actions/core';
-import { SuiClient } from '@mysten/sui/client';
+import { SuiClient, SuiParsedData } from '@mysten/sui/client';
 import { toBase64 } from '@mysten/sui/utils';
 
 import { BytecodeDump, Deploy, MvrConfig } from '../types';
@@ -60,4 +60,33 @@ export const loadUpgradeCap = async (
     package: fields.package,
     version: fields.version,
   };
+};
+
+export const loadGitVersion = async (
+  pkg_id: string,
+  version: string,
+  client: SuiClient,
+): Promise<string> => {
+  try {
+    const info = await client.getObject({
+      id: pkg_id,
+      options: { showContent: true },
+    });
+
+    const parentId: string = (info.data!.content! as any).fields.git_versioning.fields.id.id;
+
+    const { data } = await client.getDynamicFields({
+      parentId,
+    });
+
+    const gitVersion = data.find(item => item.objectType.endsWith('::git::GitInfo'));
+
+    if (!gitVersion || gitVersion.name.type !== 'u64') {
+      return version;
+    }
+
+    return gitVersion.name.value as string;
+  } catch {
+    return version;
+  }
 };
