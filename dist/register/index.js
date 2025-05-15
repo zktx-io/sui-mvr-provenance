@@ -62130,9 +62130,10 @@ const main = async () => {
         const packageInfo = transaction.object(config.pkg_info);
         transaction.add(await (0, mvrMetadatas_1.unsetAllMetadata)(config.network, config.app_name, `${cache['@mvr/core']}::move_registry::unset_metadata`, registry, appCap));
         transaction.add((0, mvrMetadatas_1.setAllMetadata)(`${cache['@mvr/core']}::move_registry::set_metadata`, registry, appCap, config, deploy.digest, provenance));
+        const gitVersion = await (0, load_1.loadGitVersion)(config.pkg_info, version, client);
         transaction.moveCall({
             target: `${cache['@mvr/metadata']}::package_info::unset_git_versioning`,
-            arguments: [packageInfo, transaction.pure.u64(parseInt(version) - 1)],
+            arguments: [packageInfo, transaction.pure.u64(gitVersion)],
         });
         const git = transaction.moveCall({
             target: `${cache['@mvr/metadata']}::git::new`,
@@ -62585,7 +62586,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
+exports.loadGitVersion = exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(91943));
 const path_1 = __importDefault(__nccwpck_require__(16928));
 const core = __importStar(__nccwpck_require__(37484));
@@ -62636,6 +62637,27 @@ const loadUpgradeCap = async (id, client) => {
     };
 };
 exports.loadUpgradeCap = loadUpgradeCap;
+const loadGitVersion = async (pkg_id, version, client) => {
+    try {
+        const info = await client.getObject({
+            id: pkg_id,
+            options: { showContent: true },
+        });
+        const parentId = info.data.content.fields.git_versioning.fields.id.id;
+        const { data } = await client.getDynamicFields({
+            parentId,
+        });
+        const gitVersion = data.find(item => item.objectType.endsWith('::git::GitInfo'));
+        if (!gitVersion || gitVersion.name.type !== 'u64') {
+            return version;
+        }
+        return gitVersion.name.value;
+    }
+    catch {
+        return version;
+    }
+};
+exports.loadGitVersion = loadGitVersion;
 
 
 /***/ }),
@@ -62682,11 +62704,28 @@ const setAllMetadata = (metadataTarget, registry, appCap, config, tx_digest, pro
 };
 exports.setAllMetadata = setAllMetadata;
 const unsetAllMetadata = async (network, name, metadataTarget, registry, appCap) => {
-    const response = await fetch(`https://${network}.mvr.mystenlabs.com/v1/names/${name}`, {
-        method: 'GET',
-    });
-    const json = await response.json();
-    const keys = Object.keys(json.metadata);
+    const url = `https://${network}.mvr.mystenlabs.com/v1/names/${name}`;
+    const maxRetries = 5;
+    const delayMs = 2000;
+    let json;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, { method: 'GET' });
+            if (!response.ok)
+                throw new Error(`HTTP ${response.status} ${response.statusText}`);
+            json = await response.json();
+            break;
+        }
+        catch (err) {
+            if (attempt === maxRetries) {
+                console.error(`❌ Failed after ${maxRetries} attempts: `, err);
+                throw err;
+            }
+            console.warn(`⚠️ Fetch failed (attempt ${attempt}/${maxRetries}): `, err);
+            await new Promise(res => setTimeout(res, delayMs));
+        }
+    }
+    const keys = Object.keys(json?.metadata || {});
     return (transaction) => {
         for (const key of keys) {
             transaction.moveCall({
