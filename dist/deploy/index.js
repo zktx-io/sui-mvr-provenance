@@ -57836,7 +57836,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
+exports.loadGitVersion = exports.loadUpgradeCap = exports.loadProvenance = exports.loadDeploy = exports.loadBytecodeDump = exports.loadMvrConfig = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(1943));
 const path_1 = __importDefault(__nccwpck_require__(6928));
 const core = __importStar(__nccwpck_require__(7484));
@@ -57887,6 +57887,27 @@ const loadUpgradeCap = async (id, client) => {
     };
 };
 exports.loadUpgradeCap = loadUpgradeCap;
+const loadGitVersion = async (pkg_id, version, client) => {
+    try {
+        const info = await client.getObject({
+            id: pkg_id,
+            options: { showContent: true },
+        });
+        const parentId = info.data.content.fields.git_versioning.fields.id.id;
+        const { data } = await client.getDynamicFields({
+            parentId,
+        });
+        const gitVersion = data.find(item => item.objectType.endsWith('::git::GitInfo'));
+        if (!gitVersion || gitVersion.name.type !== 'u64') {
+            return version;
+        }
+        return gitVersion.name.value;
+    }
+    catch {
+        return version;
+    }
+};
+exports.loadGitVersion = loadGitVersion;
 
 
 /***/ }),
