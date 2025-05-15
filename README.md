@@ -17,7 +17,7 @@ Every deployment includes:
 
 ```yaml
 - name: Build and Upload Move Smart Contract
-  uses: zktx-io/sui-mvr-provenance@v0.2.0
+  uses: zktx-io/sui-mvr-provenance@v0.2.1
   with:
     working-directory: my-move-package
   env:
