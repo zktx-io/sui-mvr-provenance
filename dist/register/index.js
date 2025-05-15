@@ -62376,6 +62376,33 @@ class GitSigner extends cryptography_1.Keypair {
         const ephemeralKeypair = ed25519_1.Ed25519Keypair.generate();
         const ephemeralAddress = ephemeralKeypair.getPublicKey().toSuiAddress();
         const host = (0, faucet_1.getFaucetHost)(NETWORK);
+        const maxFaucetRetries = 5;
+        const retryDelay = 2000;
+        let faucetSuccess = false;
+        for (let attempt = 1; attempt <= maxFaucetRetries; attempt++) {
+            try {
+                const res = await (0, faucet_1.requestSuiFromFaucetV2)({
+                    host,
+                    recipient: ephemeralAddress,
+                });
+                if (res.status === 'Success') {
+                    faucetSuccess = true;
+                    break;
+                }
+                else {
+                    console.warn(`⚠️ Faucet failed (attempt ${attempt}): ${res.status}`);
+                }
+            }
+            catch (e) {
+                console.warn(`⚠️ Faucet error (attempt ${attempt}): ${e}`);
+            }
+            if (attempt < maxFaucetRetries) {
+                await (0, exports.sleep)(retryDelay);
+            }
+        }
+        if (!faucetSuccess) {
+            throw new Error(`❌ Failed to get SUI from faucet after ${maxFaucetRetries} attempts.`);
+        }
         const res = await (0, faucet_1.requestSuiFromFaucetV2)({
             host,
             recipient: ephemeralAddress,
@@ -62384,7 +62411,6 @@ class GitSigner extends cryptography_1.Keypair {
             throw JSON.stringify(res.status);
         const client = new client_1.SuiClient({ url: (0, client_1.getFullnodeUrl)(NETWORK) });
         const maxRetries = 5;
-        const retryDelay = 1500;
         let coinPage;
         for (let i = 0; i < maxRetries; i++) {
             await (0, exports.sleep)(retryDelay);
