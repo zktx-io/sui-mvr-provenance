@@ -74,11 +74,28 @@ export const unsetAllMetadata = async (
         type?: 'object';
       },
 ): Promise<(tx: Transaction) => void> => {
-  const response = await fetch(`https://${network}.mvr.mystenlabs.com/v1/names/${name}`, {
-    method: 'GET',
-  });
-  const json = await response.json();
-  const keys: string[] = Object.keys(json.metadata);
+  const url = `https://${network}.mvr.mystenlabs.com/v1/names/${name}`;
+  const maxRetries = 5;
+  const delayMs = 2000;
+
+  let json;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, { method: 'GET' });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      json = await response.json();
+      break;
+    } catch (err) {
+      if (attempt === maxRetries) {
+        console.error(`❌ Failed after ${maxRetries} attempts: `, err);
+        throw err;
+      }
+      console.warn(`⚠️ Fetch failed (attempt ${attempt}/${maxRetries}): `, err);
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+
+  const keys = Object.keys(json?.metadata || {});
 
   return (transaction: Transaction) => {
     for (const key of keys) {
