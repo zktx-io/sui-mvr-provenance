@@ -121,6 +121,37 @@ export class GitSigner extends Keypair {
     const ephemeralKeypair = Ed25519Keypair.generate();
     const ephemeralAddress = ephemeralKeypair.getPublicKey().toSuiAddress();
     const host = getFaucetHost(NETWORK);
+
+    const maxFaucetRetries = 5;
+    const retryDelay = 2000;
+
+    let faucetSuccess = false;
+    for (let attempt = 1; attempt <= maxFaucetRetries; attempt++) {
+      try {
+        const res = await requestSuiFromFaucetV2({
+          host,
+          recipient: ephemeralAddress,
+        });
+
+        if (res.status === 'Success') {
+          faucetSuccess = true;
+          break;
+        } else {
+          console.warn(`⚠️ Faucet failed (attempt ${attempt}): ${res.status}`);
+        }
+      } catch (e) {
+        console.warn(`⚠️ Faucet error (attempt ${attempt}): ${e}`);
+      }
+
+      if (attempt < maxFaucetRetries) {
+        await sleep(retryDelay);
+      }
+    }
+
+    if (!faucetSuccess) {
+      throw new Error(`❌ Failed to get SUI from faucet after ${maxFaucetRetries} attempts.`);
+    }
+
     const res = await requestSuiFromFaucetV2({
       host,
       recipient: ephemeralAddress,
@@ -131,7 +162,6 @@ export class GitSigner extends Keypair {
     const client = new SuiClient({ url: getFullnodeUrl(NETWORK) });
 
     const maxRetries = 5;
-    const retryDelay = 1500;
     let coinPage;
 
     for (let i = 0; i < maxRetries; i++) {
